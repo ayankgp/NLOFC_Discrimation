@@ -66,7 +66,7 @@ typedef struct ofc_molecule{
     cmplx* muMATRIX;
     cmplx* polarizationINDEX;
     cmplx* polarizationMOLECULE;
-    cmplx* polarizationLINEAR;
-    cmplx* polarizationLINEARMOLECULE;
+    cmplx* chi1DIST;
+    cmplx* chi3DIST;
     double* probabilities;
 } ofc_molecule;

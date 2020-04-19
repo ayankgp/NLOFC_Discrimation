@@ -82,28 +82,6 @@ void pol3(ofc_molecule* ofc_mol, ofc_parameters* ofc_params, const cmplx wg_c, c
 
 }
 
-void pol3linear(ofc_molecule* ofc_mol, ofc_parameters* ofc_params, const cmplx wg_a)
-{
-    double freqDEL = ofc_params->freqDEL;
-    int termsNUM = ofc_params->termsNUM;
-    int combNUM = ofc_params->combNUM;
-    double combGAMMA = ofc_params->combGAMMA;
-    double omega_M = 15E-2 * 2.418884e-5 * 8;
-
-    #pragma omp parallel for
-    for(int out_i = 0; out_i < ofc_params->freqNUM; out_i++)
-    {
-        const double omega = ofc_params->frequency[out_i];
-        cmplx result = 0. + 0. * I;
-        for(int m = - combNUM; m < combNUM; m++)
-        {
-            result += (combGAMMA / (pow((omega - omega_M - m * freqDEL), 2) + pow(combGAMMA, 2)));
-        }
-        result = ((1./(conj(wg_a)- omega)) + (1./(wg_a + omega)));
-        ofc_mol->polarizationLINEAR[out_i] += result;
-    }
-}
-
 void CalculateResponse(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
 {
     int m, n, v, l, levelsNUM;
@@ -138,40 +116,3 @@ void CalculateResponse(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
     pol3(ofc_mol, ofc_params, wg_ml, wg_nl, wg_vl, 1);
 
 }
-
-void CalculateResponseLinear(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
-{
-    int m, n, v, l, levelsNUM;
-
-    levelsNUM = ofc_mol->levelsNUM;
-    l = 0;
-    m = 1;
-    n = 2;
-    v = 3;
-
-    cmplx wg_nl = ofc_mol->energies[n] - ofc_mol->energies[l] + I * ofc_mol->gammaMATRIX[n * levelsNUM + l];
-    cmplx wg_vl = ofc_mol->energies[v] - ofc_mol->energies[l] + I * ofc_mol->gammaMATRIX[v * levelsNUM + l];
-    cmplx wg_ml = ofc_mol->energies[m] - ofc_mol->energies[l] + I * ofc_mol->gammaMATRIX[m * levelsNUM + l];
-
-    pol3linear(ofc_mol, ofc_params, wg_vl);
-    pol3linear(ofc_mol, ofc_params, wg_nl);
-    pol3linear(ofc_mol, ofc_params, wg_ml);
-
-}
-
-//void CalculateChiLinear(ofc_molecule* mol, ofc_parameters* ofc_params)
-//{
-//    int m, n, v, l, levelsNUM;
-//
-//    levelsNUM = ofc_mol->levelsNUM;
-//    l = 0;
-//    m = 1;
-//    n = 2;
-//    v = 3;
-//
-//    cmplx wg_nl = ofc_mol->energies[n] - ofc_mol->energies[l] + I * ofc_mol->gammaMATRIX[n * levelsNUM + l];
-//    cmplx wg_vl = ofc_mol->energies[v] - ofc_mol->energies[l] + I * ofc_mol->gammaMATRIX[v * levelsNUM + l];
-//    cmplx wg_ml = ofc_mol->energies[m] - ofc_mol->energies[l] + I * ofc_mol->gammaMATRIX[m * levelsNUM + l];
-//
-//
-//}

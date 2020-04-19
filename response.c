@@ -328,8 +328,8 @@ void copy_ofc_molecule(ofc_molecule* original, ofc_molecule* copy, ofc_parameter
     copy->muMATRIX = (cmplx*)malloc(levelsNUM*levelsNUM*sizeof(cmplx));
     copy->polarizationINDEX = (cmplx*)malloc(freqNUM*sizeof(cmplx));
     copy->polarizationMOLECULE = (cmplx*)malloc(ensembleNUM*freqNUM*sizeof(cmplx));
-    copy->polarizationLINEAR = (cmplx*)malloc(freqNUM*sizeof(cmplx));
-    copy->polarizationLINEARMOLECULE = (cmplx*)malloc(ensembleNUM*freqNUM*sizeof(cmplx));
+    copy->chi1DIST = (cmplx*)malloc(ensembleNUM*freqNUM*sizeof(cmplx));
+    copy->chi3DIST = (cmplx*)malloc(ensembleNUM*freqNUM*sizeof(cmplx));
     copy->probabilities = (double*)malloc(ensembleNUM*sizeof(double));
 
     memset(copy->energies, 0, original->levelsNUM*sizeof(double));
@@ -337,8 +337,8 @@ void copy_ofc_molecule(ofc_molecule* original, ofc_molecule* copy, ofc_parameter
     memcpy(copy->muMATRIX, original->muMATRIX, levelsNUM*levelsNUM*sizeof(cmplx));
     memcpy(copy->polarizationINDEX, original->polarizationINDEX, freqNUM*sizeof(cmplx));
     memcpy(copy->polarizationMOLECULE, original->polarizationMOLECULE, ensembleNUM*freqNUM*sizeof(cmplx));
-    memcpy(copy->polarizationLINEAR, original->polarizationLINEAR, freqNUM*sizeof(cmplx));
-    memcpy(copy->polarizationLINEARMOLECULE, original->polarizationLINEARMOLECULE, ensembleNUM*freqNUM*sizeof(cmplx));
+    memcpy(copy->chi1DIST, original->chi1DIST, ensembleNUM*freqNUM*sizeof(cmplx));
+    memcpy(copy->chi3DIST, original->chi3DIST, ensembleNUM*freqNUM*sizeof(cmplx));
     memcpy(copy->probabilities, original->probabilities, ensembleNUM*sizeof(double));
 }
 
@@ -353,8 +353,8 @@ void free_ofc_molecule(ofc_molecule* mol)
     free(mol->muMATRIX);
     free(mol->polarizationINDEX);
     free(mol->polarizationMOLECULE);
-    free(mol->polarizationLINEAR);
-    free(mol->polarizationLINEARMOLECULE);
+    free(mol->chi1DIST);
+    free(mol->chi3DIST);
     free(mol->probabilities);
     free(mol);
 }

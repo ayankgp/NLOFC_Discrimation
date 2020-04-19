@@ -102,8 +102,8 @@ class OFCMolecule(Structure):
         ('muMATRIX', POINTER(c_complex)),
         ('polarizationINDEX', POINTER(c_complex)),
         ('polarizationMOLECULE', POINTER(c_complex)),
-        ('polarizationLINEAR', POINTER(c_complex)),
-        ('polarizationLINEARMOLECULE', POINTER(c_complex)),
+        ('chi1DIST', POINTER(c_complex)),
+        ('chi3DIST', POINTER(c_complex)),
         ('probabilities', POINTER(c_double))
     ]
 

@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-Nfreq = 5
+Nfreq = 500
 Nmol = 3
 
 P = np.empty((Nfreq, Nmol))
