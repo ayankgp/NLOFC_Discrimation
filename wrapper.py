@@ -73,11 +73,12 @@ class OFCParameters(Structure):
         ('excitedNUM', c_int),
         ('ensembleNUM', c_int),
         ('freqNUM', c_int),
+        ('chiNUM', c_int),
         ('combNUM', c_int),
         ('resolutionNUM', c_int),
         ('basisNUM', c_int),
         ('frequency', POINTER(c_double)),
-        ('omega', POINTER(c_double)),
+        ('omega_chi', POINTER(c_double)),
         ('combGAMMA', c_double),
         ('freqDEL', c_double),
         ('termsNUM', c_int),
@@ -85,7 +86,8 @@ class OFCParameters(Structure):
         ('basisINDX', POINTER(c_long)),
         ('modulations', POINTER(c_double)),
         ('envelopeWIDTH', c_double),
-        ('envelopeCENTER', c_double)
+        ('envelopeCENTER', c_double),
+        ('frequencyMC', POINTER(c_double))
     ]
 
 
@@ -104,12 +106,14 @@ class OFCMolecule(Structure):
         ('polarizationMOLECULE', POINTER(c_complex)),
         ('chi1DIST', POINTER(c_complex)),
         ('chi3DIST', POINTER(c_complex)),
+        ('chi1INDEX', POINTER(c_complex)),
+        ('chi3INDEX', POINTER(c_complex)),
         ('probabilities', POINTER(c_double))
     ]
 
 
 try:
-    lib1 = ctypes.cdll.LoadLibrary(os.getcwd() + "/response.so")
+    lib = ctypes.cdll.LoadLibrary(os.getcwd() + "/response.so")
 except OSError:
     raise NotImplementedError(
         """
@@ -118,28 +122,41 @@ except OSError:
         """
     )
 
-lib1.CalculateLinearResponse.argtypes = (
+lib.CalculateLinearResponse.argtypes = (
     POINTER(SpectraMolecule),
     POINTER(SpectraParameters),
 )
-lib1.CalculateLinearResponse.restype = None
+lib.CalculateLinearResponse.restype = None
 
-lib1.CalculateOFCResponse.argtypes = (
+lib.CalculateOFCResponse.argtypes = (
     POINTER(OFCMolecule),
     POINTER(OFCParameters),
 )
-lib1.CalculateOFCResponse.restype = None
+lib.CalculateOFCResponse.restype = None
+
+lib.CalculateChi.argtypes = (
+    POINTER(OFCMolecule),
+    POINTER(OFCParameters),
+)
+lib.CalculateChi.restype = None
 
 
 def CalculateSpectra(spectra_mol, spectra_params):
-    return lib1.CalculateLinearResponse(
+    return lib.CalculateLinearResponse(
         spectra_mol,
         spectra_params
     )
 
 
 def CalculateNLResponse(ofc_mol, ofc_params):
-    return lib1.CalculateOFCResponse(
+    return lib.CalculateOFCResponse(
+        ofc_mol,
+        ofc_params
+    )
+
+
+def CalculateChi(ofc_mol, ofc_params):
+    return lib.CalculateChi(
         ofc_mol,
         ofc_params
     )

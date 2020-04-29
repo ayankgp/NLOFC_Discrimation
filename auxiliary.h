@@ -39,17 +39,17 @@ void print_complex_vec(const cmplx *A, const int vecDIM)
 	printf("\n");
 }
 
-void print_double_mat(const double *A, const int nDIM)
+void print_double_mat(const double *A, const int nDIM1, const int nDIM2)
 //----------------------------------------------------//
 // 	            PRINTS A REAL MATRIX                  //
 //----------------------------------------------------//
 {
 	int i,j;
-	for(i=0; i<nDIM; i++)
+	for(i=0; i<nDIM1; i++)
 	{
-		for(j=0; j<nDIM; j++)
+		for(j=0; j<nDIM2; j++)
 		{
-			printf("%3.3e  ", A[i * nDIM + j]);
+			printf("%3.3e  ", A[i * nDIM2 + j]);
 		}
 	    printf("\n");
 	}

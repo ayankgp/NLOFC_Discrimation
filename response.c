@@ -19,9 +19,7 @@
 #include <omp.h>
 #include <time.h>
 #include "OFCintegral.h"
-#define ENERGY_FACTOR 1. / 27.211385
 #define ERROR_BOUND 1.0E-8
-#define WAVELENGTH2FREQ 1239.84
 #define NLOPT_XTOL 1.0E-6
 
 
@@ -321,6 +319,7 @@ void copy_ofc_molecule(ofc_molecule* original, ofc_molecule* copy, ofc_parameter
     int ensembleNUM = ofc_params->ensembleNUM;
     int levelsNUM = original->levelsNUM;
     int freqNUM = ofc_params->freqNUM;
+    int chiNUM = ofc_params->chiNUM;
 
     copy->levelsNUM = original->levelsNUM;
     copy->energies = (double*)malloc(levelsNUM*sizeof(double));
@@ -328,8 +327,10 @@ void copy_ofc_molecule(ofc_molecule* original, ofc_molecule* copy, ofc_parameter
     copy->muMATRIX = (cmplx*)malloc(levelsNUM*levelsNUM*sizeof(cmplx));
     copy->polarizationINDEX = (cmplx*)malloc(freqNUM*sizeof(cmplx));
     copy->polarizationMOLECULE = (cmplx*)malloc(ensembleNUM*freqNUM*sizeof(cmplx));
-    copy->chi1DIST = (cmplx*)malloc(ensembleNUM*freqNUM*sizeof(cmplx));
-    copy->chi3DIST = (cmplx*)malloc(ensembleNUM*freqNUM*sizeof(cmplx));
+    copy->chi1DIST = (cmplx*)malloc(ensembleNUM*chiNUM*sizeof(cmplx));
+    copy->chi3DIST = (cmplx*)malloc(ensembleNUM*chiNUM*sizeof(cmplx));
+    copy->chi1INDEX = (cmplx*)malloc(chiNUM*sizeof(cmplx));
+    copy->chi3INDEX = (cmplx*)malloc(chiNUM*sizeof(cmplx));
     copy->probabilities = (double*)malloc(ensembleNUM*sizeof(double));
 
     memset(copy->energies, 0, original->levelsNUM*sizeof(double));
@@ -337,8 +338,10 @@ void copy_ofc_molecule(ofc_molecule* original, ofc_molecule* copy, ofc_parameter
     memcpy(copy->muMATRIX, original->muMATRIX, levelsNUM*levelsNUM*sizeof(cmplx));
     memcpy(copy->polarizationINDEX, original->polarizationINDEX, freqNUM*sizeof(cmplx));
     memcpy(copy->polarizationMOLECULE, original->polarizationMOLECULE, ensembleNUM*freqNUM*sizeof(cmplx));
-    memcpy(copy->chi1DIST, original->chi1DIST, ensembleNUM*freqNUM*sizeof(cmplx));
-    memcpy(copy->chi3DIST, original->chi3DIST, ensembleNUM*freqNUM*sizeof(cmplx));
+    memcpy(copy->chi1DIST, original->chi1DIST, ensembleNUM*chiNUM*sizeof(cmplx));
+    memcpy(copy->chi3DIST, original->chi3DIST, ensembleNUM*chiNUM*sizeof(cmplx));
+    memcpy(copy->chi1INDEX, original->chi1INDEX, chiNUM*sizeof(cmplx));
+    memcpy(copy->chi3INDEX, original->chi3INDEX, chiNUM*sizeof(cmplx));
     memcpy(copy->probabilities, original->probabilities, ensembleNUM*sizeof(double));
 }
 
@@ -355,6 +358,8 @@ void free_ofc_molecule(ofc_molecule* mol)
     free(mol->polarizationMOLECULE);
     free(mol->chi1DIST);
     free(mol->chi3DIST);
+    free(mol->chi1INDEX);
+    free(mol->chi3INDEX);
     free(mol->probabilities);
     free(mol);
 }
@@ -393,7 +398,7 @@ void CalculateOFCResponse(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
 
     for(int j=0; j<ofc_params->ensembleNUM; j++)
     {
-        CalculateResponse(ensemble[j], ofc_params);
+        CalculatePol3Response(ensemble[j], ofc_params);
         for(int i=0; i<ofc_params->freqNUM; i++)
         {
             ofc_mol->polarizationMOLECULE[j * ofc_params->freqNUM + i] = ensemble[j]->polarizationINDEX[i];
@@ -401,4 +406,44 @@ void CalculateOFCResponse(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
         free_ofc_molecule(ensemble[j]);
     }
 
+}
+
+
+void CalculateChi(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
+//------------------------------------------------------------//
+//          CALCULATING Chi1 RESPONSE FOR MOLECULE            //
+//------------------------------------------------------------//
+{
+    int vibrNUM = ofc_mol->levelsNUM - ofc_params->excitedNUM;
+    ofc_molecule** ensemble = (ofc_molecule**)malloc(ofc_params->ensembleNUM * sizeof(ofc_molecule*));
+    for(int i=0; i<ofc_params->ensembleNUM; i++)
+    {
+        ensemble[i] = (ofc_molecule*)malloc(sizeof(ofc_molecule));
+        copy_ofc_molecule(ofc_mol, ensemble[i], ofc_params);
+        for(int j=0; j<vibrNUM; j++)
+        {
+            ensemble[i]->energies[j] = ofc_mol->levelsVIBR[j];
+        }
+
+        for(int j=0; j<ofc_params->excitedNUM; j++)
+        {
+            ensemble[i]->energies[vibrNUM + j] = ofc_mol->levels[ofc_params->excitedNUM*i+j];
+        }
+    }
+
+    // ---------------------------------------------------------------------- //
+    //                   CREATING THE ENSEMBLE OF MOLECULES                   //
+    // ---------------------------------------------------------------------- //
+
+    for(int j=0; j<ofc_params->ensembleNUM; j++)
+    {
+        Chi1(ensemble[j], ofc_params);
+        Chi3(ensemble[j], ofc_params);
+        for(int i=0; i<ofc_params->chiNUM; i++)
+        {
+            ofc_mol->chi1DIST[j * ofc_params->chiNUM + i] = ensemble[j]->chi1INDEX[i];
+            ofc_mol->chi3DIST[j * ofc_params->chiNUM + i] = ensemble[j]->chi3INDEX[i];
+        }
+        free_ofc_molecule(ensemble[j]);
+    }
 }

@@ -1,5 +1,7 @@
 #include "auxiliary.h"
 #include "structures.h"
+#define ENERGY_FACTOR 1. / 27.211385
+#define WAVELENGTH2FREQ 1239.84
 
 //====================================================================================================================//
 //                                                                                                                    //
@@ -82,15 +84,18 @@ void pol3(ofc_molecule* ofc_mol, ofc_parameters* ofc_params, const cmplx wg_c, c
 
 }
 
-void CalculateResponse(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
+void CalculatePol3Response(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
 {
-    int m, n, v, l, levelsNUM;
+    int levelsNUM;
+    long l, m, n, v;
 
     levelsNUM = ofc_mol->levelsNUM;
     l = 0;
     m = ofc_params->indices[0];
     n = ofc_params->indices[1];
     v = ofc_params->indices[2];
+
+    printf("%ld %ld %ld \n", ofc_params->indices[0], ofc_params->indices[1], ofc_params->indices[2]);
 
     cmplx wg_nl = ofc_mol->energies[n] - ofc_mol->energies[l] + I * ofc_mol->gammaMATRIX[n * levelsNUM + l];
     cmplx wg_vl = ofc_mol->energies[v] - ofc_mol->energies[l] + I * ofc_mol->gammaMATRIX[v * levelsNUM + l];
@@ -115,4 +120,91 @@ void CalculateResponse(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
     pol3(ofc_mol, ofc_params, wg_nm, wg_vm, -conj(wg_ml), -1);
     pol3(ofc_mol, ofc_params, wg_ml, wg_nl, wg_vl, 1);
 
+}
+
+void Chi1(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
+{
+    int m, n, v, l, levelsNUM;
+
+    levelsNUM = ofc_mol->levelsNUM;
+    l = 0;
+    m = 1;
+    n = 2;
+    v = 3;
+
+    cmplx wg_ml = ofc_mol->energies[m] - ofc_mol->energies[l] + I * ofc_mol->gammaMATRIX[m * levelsNUM + l];
+    cmplx wg_nl = ofc_mol->energies[n] - ofc_mol->energies[l] + I * ofc_mol->gammaMATRIX[n * levelsNUM + l];
+    cmplx wg_vl = ofc_mol->energies[v] - ofc_mol->energies[l] + I * ofc_mol->gammaMATRIX[v * levelsNUM + l];
+
+    cmplx mu_ml = ofc_mol->muMATRIX[m * levelsNUM + l];
+    cmplx mu_lm = ofc_mol->muMATRIX[l * levelsNUM + m];
+    cmplx mu_nl = ofc_mol->muMATRIX[n * levelsNUM + l];
+    cmplx mu_ln = ofc_mol->muMATRIX[l * levelsNUM + n];
+    cmplx mu_vl = ofc_mol->muMATRIX[v * levelsNUM + l];
+    cmplx mu_lv = ofc_mol->muMATRIX[l * levelsNUM + v];
+
+    //==========================================================================================//
+    //  THE FOLLOWING 8 CALLS ARE FOR THE 8 SPECTROSCOPIC TERMS: (a1), (a2), ...., (d1), (d2)   //                                                                         //
+    //==========================================================================================//
+
+    for(int out_i = 0; out_i < ofc_params->chiNUM; out_i++)
+    {
+        const double omega = ofc_params->omega_chi[out_i];
+        cmplx result = 0. + 0. * I;
+        {
+            result += mu_lm * mu_ml * (1./(conj(wg_ml) - omega) + 1./(wg_ml + omega));
+            result += mu_ln * mu_nl * (1./(conj(wg_nl) - omega) + 1./(wg_nl + omega));
+            result += mu_lv * mu_vl * (1./(conj(wg_vl) - omega) + 1./(wg_vl + omega));
+        }
+        ofc_mol->chi1INDEX[out_i] += result;
+    }
+
+}
+
+
+void Chi3terms(ofc_molecule* ofc_mol, ofc_parameters* ofc_params, int m, int n, int v)
+{
+    int l = 0;
+    int levelsNUM;
+    double omega_p, omega_q, omega_r;
+    levelsNUM = ofc_mol->levelsNUM;
+    cmplx wg_ml = ofc_mol->energies[m] - ofc_mol->energies[l] + I * ofc_mol->gammaMATRIX[m * levelsNUM + l];
+    cmplx wg_nl = ofc_mol->energies[n] - ofc_mol->energies[l] + I * ofc_mol->gammaMATRIX[n * levelsNUM + l];
+    cmplx wg_vl = ofc_mol->energies[v] - ofc_mol->energies[l] + I * ofc_mol->gammaMATRIX[v * levelsNUM + l];
+    cmplx wg_nv = ofc_mol->energies[n] - ofc_mol->energies[v] + I * ofc_mol->gammaMATRIX[n * levelsNUM + v];
+    cmplx wg_mv = ofc_mol->energies[m] - ofc_mol->energies[v] + I * ofc_mol->gammaMATRIX[m * levelsNUM + v];
+    cmplx wg_vm = ofc_mol->energies[v] - ofc_mol->energies[m] + I * ofc_mol->gammaMATRIX[v * levelsNUM + m];
+    cmplx wg_vn = ofc_mol->energies[v] - ofc_mol->energies[n] + I * ofc_mol->gammaMATRIX[v * levelsNUM + n];
+    cmplx wg_mn = ofc_mol->energies[m] - ofc_mol->energies[n] + I * ofc_mol->gammaMATRIX[m * levelsNUM + n];
+    cmplx wg_nm = ofc_mol->energies[n] - ofc_mol->energies[m] + I * ofc_mol->gammaMATRIX[n * levelsNUM + m];
+
+    for(int out_i = 0; out_i < ofc_params->chiNUM; out_i++)
+    {
+        omega_p = ENERGY_FACTOR * WAVELENGTH2FREQ / ofc_params->frequencyMC[out_i * 3 + 0];
+        omega_q = ENERGY_FACTOR * WAVELENGTH2FREQ / ofc_params->frequencyMC[out_i * 3 + 1];
+        omega_r = ENERGY_FACTOR * WAVELENGTH2FREQ / ofc_params->frequencyMC[out_i * 3 + 2];
+        cmplx result = 0. + 0. * I;
+        result += 1./((conj(wg_vl) - (omega_p + omega_q - omega_r)) * (conj(wg_nl) - (omega_p + omega_q)) * (conj(wg_ml) - omega_p));     // (a_1)
+        result += 1./((conj(wg_nv) - (omega_p + omega_q - omega_r)) * (conj(wg_mv) - (omega_p + omega_q)) * (conj(wg_vl) - omega_p));     // (a_2)
+        result += 1./((conj(wg_nv) - (omega_p + omega_q - omega_r)) * (conj(wg_vm) - (omega_p + omega_q)) * (conj(wg_ml) - omega_p));     // (b_1)
+        result += 1./((conj(wg_mn) - (omega_p + omega_q - omega_r)) * (conj(wg_nl) - (omega_p + omega_q)) * (conj(wg_vl) - omega_p));     // (b_2)
+        result += 1./((conj(wg_vn) - (omega_p + omega_q - omega_r)) * (conj(wg_nl) - (omega_p + omega_q)) * (conj(wg_ml) - omega_p));     // (c_1)
+        result += 1./((conj(wg_nm) - (omega_p + omega_q - omega_r)) * (conj(wg_mv) - (omega_p + omega_q)) * (conj(wg_vl) - omega_p));     // (c_2)
+        result += 1./((conj(wg_nm) - (omega_p + omega_q - omega_r)) * (conj(wg_vm) - (omega_p + omega_q)) * (conj(wg_ml) - omega_p));     // (d_1)
+        result += 1./((conj(wg_ml) - (omega_p + omega_q - omega_r)) * (conj(wg_nl) - (omega_p + omega_q)) * (conj(wg_vl) - omega_p));     // (d_2)
+        ofc_mol->chi3INDEX[out_i] += result;
+    }
+}
+
+
+void Chi3(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
+{
+    long m, n, v, l;
+
+    Chi3terms(ofc_mol, ofc_params, 1, 2, 3);
+    Chi3terms(ofc_mol, ofc_params, 1, 3, 2);
+    Chi3terms(ofc_mol, ofc_params, 2, 1, 3);
+    Chi3terms(ofc_mol, ofc_params, 2, 3, 1);
+    Chi3terms(ofc_mol, ofc_params, 3, 1, 2);
+    Chi3terms(ofc_mol, ofc_params, 3, 2, 1);
 }

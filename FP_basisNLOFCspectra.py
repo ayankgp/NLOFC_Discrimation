@@ -135,7 +135,7 @@ class OFC:
         self.energies = np.ascontiguousarray(self.energies)
         self.levelsNUM = ofc_variables.levelsNUM
         self.frequency, self.freq12, self.freq21, self.field1FREQ, self.field2FREQ = nonuniform_frequency_range_3(ofc_variables, -1.6, 2.4)
-        self.omega = self.frequency
+        self.omega_chi = np.linspace(0.425 * ofc_variables.freqDEL * ofc_variables.combNUM, 0.675 * ofc_variables.freqDEL * ofc_variables.combNUM, ofc_variables.chiNUM)
         self.polarizationEMPTY = np.zeros((ofc_variables.molNUM, ofc_variables.ensembleNUM, self.frequency.size), dtype=np.complex)
         self.polarizationFIELD = np.zeros((ofc_variables.molNUM, ofc_variables.ensembleNUM, self.frequency.size), dtype=np.complex)
         self.polarizationINDEX = np.zeros((ofc_variables.molNUM, self.frequency.size), dtype=np.complex)
@@ -147,8 +147,10 @@ class OFC:
         self.polarizationTOTALFIELD_DIST = np.zeros((ofc_variables.basisNUM, ofc_variables.basisNUM,
                                                      ofc_variables.basisNUM, ofc_variables.molNUM, self.frequency.size),
                                                     dtype=np.complex)
-        self.chi1DIST = np.zeros((ofc_variables.molNUM, ofc_variables.ensembleNUM, self.frequency.size), dtype=np.complex)
-        self.chi3DIST = np.zeros((ofc_variables.molNUM, ofc_variables.ensembleNUM, self.frequency.size), dtype=np.complex)
+        self.chi1DIST = np.zeros((ofc_variables.molNUM, ofc_variables.ensembleNUM, self.omega_chi.size), dtype=np.complex)
+        self.chi3DIST = np.zeros((ofc_variables.molNUM, ofc_variables.ensembleNUM, self.omega_chi.size), dtype=np.complex)
+        self.chi1INDEX = np.zeros((ofc_variables.molNUM, self.omega_chi.size), dtype=np.complex)
+        self.chi3INDEX = np.zeros((ofc_variables.molNUM, self.omega_chi.size), dtype=np.complex)
         self.polINDX = np.empty((ofc_variables.basisNUM, ofc_variables.basisNUM, ofc_variables.basisNUM))
         self.basisINDX = np.empty(3, dtype=int)
         self.indices = np.empty(3, dtype=int)
@@ -170,6 +172,8 @@ class OFC:
         ofc_molecule.polarizationMOLECULE = self.polarizationMOLECULE[indices].ctypes.data_as(POINTER(c_complex))
         ofc_molecule.chi1DIST = self.chi1DIST[indices].ctypes.data_as(POINTER(c_complex))
         ofc_molecule.chi3DIST = self.chi3DIST[indices].ctypes.data_as(POINTER(c_complex))
+        ofc_molecule.chi1INDEX = self.chi1INDEX[indices].ctypes.data_as(POINTER(c_complex))
+        ofc_molecule.chi3INDEX = self.chi3INDEX[indices].ctypes.data_as(POINTER(c_complex))
         ofc_molecule.probabilities = self.probabilities[indices].ctypes.data_as(POINTER(c_double))
         return
 
@@ -177,11 +181,12 @@ class OFC:
         ofc_parameters.excitedNUM = ofc_variables.excitedNUM
         ofc_parameters.ensembleNUM = ofc_variables.ensembleNUM
         ofc_parameters.freqNUM = len(self.frequency)
+        ofc_parameters.chiNUM = ofc_variables.chiNUM
         ofc_parameters.combNUM = ofc_variables.combNUM
         ofc_parameters.resolutionNUM = ofc_variables.resolutionNUM
         ofc_parameters.basisNUM = ofc_variables.basisNUM
         ofc_parameters.frequency = self.frequency.ctypes.data_as(POINTER(c_double))
-        ofc_parameters.omega = self.omega.ctypes.data_as(POINTER(c_double))
+        ofc_parameters.omega_chi = self.omega_chi.ctypes.data_as(POINTER(c_double))
         ofc_parameters.combGAMMA = ofc_variables.combGAMMA
         ofc_parameters.freqDEL = ofc_variables.freqDEL
         ofc_parameters.termsNUM = ofc_variables.termsNUM
@@ -190,6 +195,7 @@ class OFC:
         ofc_parameters.modulations = np.zeros(3, dtype=int).ctypes.data_as(POINTER(c_double))
         ofc_parameters.envelopeWIDTH = ofc_variables.envelopeWIDTH
         ofc_parameters.envelopeCENTER = ofc_variables.envelopeCENTER
+        ofc_parameters.frequencyMC = ofc_variables.frequencyMC.ctypes.data_as(POINTER(c_double))
         return
 
     def calculate_ofc_system(self, ofc_variables):
@@ -239,17 +245,17 @@ class OFC:
                         self.polarizationTOTALFIELD_DIST[I_][J_][K_][molINDX] = self.polarizationTOTALFIELD[molINDX]
 
                         if ofc_variables.molNUM > 1:
-                            ax[molINDX, 0].plot(system.frequency / (timeFACTOR * 2 * np.pi), self.polarizationTOTALEMPTY[molINDX].real, 'r')
-                            ax[molINDX, 0].plot(system.frequency / (timeFACTOR * 2 * np.pi), self.polarizationTOTALFIELD[molINDX].real, 'k')
-                            ax[molINDX, 1].plot(system.frequency / (timeFACTOR * 2 * np.pi), self.polarizationTOTALEMPTY[molINDX].imag, 'r')
-                            ax[molINDX, 1].plot(system.frequency / (timeFACTOR * 2 * np.pi), self.polarizationTOTALFIELD[molINDX].imag, 'k')
+                            ax[molINDX, 0].plot(self.frequency / (timeFACTOR * 2 * np.pi), self.polarizationTOTALEMPTY[molINDX].real, 'r')
+                            ax[molINDX, 0].plot(self.frequency / (timeFACTOR * 2 * np.pi), self.polarizationTOTALFIELD[molINDX].real, 'k')
+                            ax[molINDX, 1].plot(self.frequency / (timeFACTOR * 2 * np.pi), self.polarizationTOTALEMPTY[molINDX].imag, 'r')
+                            ax[molINDX, 1].plot(self.frequency / (timeFACTOR * 2 * np.pi), self.polarizationTOTALFIELD[molINDX].imag, 'k')
                             ax[molINDX, 0].grid()
                             ax[molINDX, 1].grid()
                         else:
-                            ax[0].plot(system.frequency / (timeFACTOR * 2 * np.pi), self.polarizationTOTALEMPTY[molINDX].real, 'r')
-                            ax[0].plot(system.frequency / (timeFACTOR * 2 * np.pi), self.polarizationTOTALFIELD[molINDX].real, 'k')
-                            ax[1].plot(system.frequency / (timeFACTOR * 2 * np.pi), self.polarizationTOTALEMPTY[molINDX].imag, 'r')
-                            ax[1].plot(system.frequency / (timeFACTOR * 2 * np.pi), self.polarizationTOTALFIELD[molINDX].imag, 'k')
+                            ax[0].plot(self.frequency / (timeFACTOR * 2 * np.pi), self.polarizationTOTALEMPTY[molINDX].real, 'r')
+                            ax[0].plot(self.frequency / (timeFACTOR * 2 * np.pi), self.polarizationTOTALFIELD[molINDX].real, 'k')
+                            ax[1].plot(self.frequency / (timeFACTOR * 2 * np.pi), self.polarizationTOTALEMPTY[molINDX].imag, 'r')
+                            ax[1].plot(self.frequency / (timeFACTOR * 2 * np.pi), self.polarizationTOTALFIELD[molINDX].imag, 'k')
                             ax[0].grid()
                             ax[1].grid()
 
@@ -266,6 +272,10 @@ class OFC:
         ofc_parameters = OFCParameters()
         self.create_ofc_parameters(ofc_parameters, ofc_variables)
         molENSEMBLE = [OFCMolecule() for _ in range(ofc_variables.molNUM)]
+
+        for molINDX in range(ofc_variables.molNUM):
+            self.create_ofc_molecule(molENSEMBLE[molINDX], molINDX)
+            CalculateChi(molENSEMBLE[molINDX], ofc_parameters)
 
 
 if __name__ == '__main__':
@@ -284,7 +294,7 @@ if __name__ == '__main__':
     #                       MOLECULAR CONSTANTS, VARIABLES, VECTORS & MATRICES                   #
     # ------------------------------------------------------------------------------------------ #
 
-    molNUM = 1
+    molNUM = 4
     levelsNUM = 4
     ensembleNUM = 44
     groundNUM = 2
@@ -293,15 +303,16 @@ if __name__ == '__main__':
     # ------------------ MOLECULAR ENERGY LEVEL STRUCTURE ------------------ #
 
     energies = np.empty((molNUM, levelsNUM))
-    levelMIN = [555, 558, 558]
-    levelMAX = [725, 735, 785]
-    wavelengthMIN = [539, 551, 551]
-    wavelengthMAX = [772, 819, 799]
+    levelMIN = [555, 575, 595, 615, 635]
+    levelMAX = [725, 735, 745, 755, 765]
+    wavelengthMIN = [539, 551, 551, 551, 551]
+    wavelengthMAX = [772, 819, 799, 799, 799]
     levels = [
         np.asarray(wavelength2freqFACTOR * energyFACTOR / np.linspace(levelMIN[i], levelMAX[i], excitedNUM * ensembleNUM)[::-1])
-        for i in range(molNUM)]
+        for i in range(molNUM)
+    ]
 
-    vibrations = [1600, 1610, 1590]
+    vibrations = [1600, 1610, 1590, 1605, 1595]
     levelsVIBR = [np.asarray([0, vibrations[i]]) * energyFACTOR * cm_inv2evFACTOR for i in range(molNUM)]
 
     # ------------------------ INITIAL DENSITY MATRIX ---------------------- #
@@ -311,14 +322,12 @@ if __name__ == '__main__':
 
     # ------------------ TRANSITION DIPOLE MOMENT AND DECAY PARAMETERS ------------------ #
 
-    MU = [2., 2.1, 2.2]
-    MUvibr = [0.5, 0.55, 0.6]
+    MU = [2.2, 2.1, 2.15, 2.1, 2.25]
+    MUvibr = [0.12, 0.11, 0.10, 0.13, 0.09]
 
-    gammaPOPD = [2.418884e-8, 2.518884e-8, 2.618884e-8]
-    gammaVIBR = [1.e-6, 2.e-6, 3e-6]
-    gammaELEC = [1.5 * 2.518884e-4, 1.7 * 2.518884e-4, 1.9 * 2.618884e-4]
-    levels = np.asarray(levels) / 1e0
-    levelsVIBR = np.asarray(levelsVIBR) / 1e0
+    gammaPOPD = [2.418884e-8, 2.518884e-8, 2.618884e-8, 2.718884e-8, 2.818884e-8]
+    gammaVIBR = [1.e-6, 1.2e-6, 1.5e-6, 1.15e-6, 1.45e-6]
+    gammaELEC = [2.1 * 2.518884e-4, 2.25 * 2.518884e-4, 2.4 * 2.618884e-4, 2.3 * 2.518884e-4, 2.15 * 2.618884e-4]
     muMATRIX = [MUvibr[i] * np.ones((levelsNUM, levelsNUM), dtype=np.complex) for i in range(molNUM)]
     [np.fill_diagonal(muMATRIX[i], 0j) for i in range(molNUM)]
     for i in range(molNUM):
@@ -344,29 +353,31 @@ if __name__ == '__main__':
             for m in range(levelsNUM):
                 for i in range(levelsNUM):
                     gammaMATRIX[k][n][m] += 0.5 * (gammaMATRIXpopd[k][n][i] + gammaMATRIXpopd[k][m][i])
+        np.fill_diagonal(gammaMATRIX[k], 0.0)
 
+    for k in range(molNUM):
+        gammaMATRIX[k][1:,1:] *= (1 + k * 0.5)
 
     # ------------------ SPECTRA FITTING PROBABILITIES  ------------------ #
 
-    probabilities = np.asarray(
-        [
-            [0.0559383, 0.0405529, 0.0496727, 0.0502181, 0.0505829, 0.0540158, 0.0698249, 0.0561983, 0.0872398,
-             0.0899126, 0.0889188, 0.125873, 0.17377, 0.164667, 0.131627, 0.167373, 0.235067, 0.272492, 0.291075,
-             0.314825, 0.344628, 0.382892, 0.454013, 0.449995, 0.503389, 0.543675, 0.59588, 0.633565, 0.648047,
-             0.701027, 0.825524, 0.979807, 0.998223, 0.999991, 0.999955, 0.9996, 0.966293, 0.903151, 0.624991,
-             0.362229, 0.245723, 0.13213, 0.072025, 0.0118298],
-            [0.0293968, 0.0338536, 0.0383105, 0.040928, 0.0434535, 0.0481712, 0.0634281, 0.0460764, 0.079831, 0.057043,
-             0.0757835, 0.0893302, 0.10581, 0.126468, 0.148797, 0.16973, 0.189966, 0.222053, 0.261433, 0.292574,
-             0.317536, 0.355447, 0.405128, 0.456216, 0.50885, 0.559217, 0.606564, 0.660551, 0.72533, 0.802389, 0.976003,
-             0.994937, 0.997694, 0.997776, 0.989299, 0.909013, 0.800151, 0.680393, 0.495251, 0.319516, 0.233149,
-             0.147702, 0.0806267, 0.0135515],
-            [0.00679299, 0.00727662, 0.0130347, 0.0137522, 0.0143939, 0.0188319, 0.023665, 0.0301884, 0.0370206,
-             0.0362768, 0.0337105, 0.048696, 0.0690665, 0.0735955, 0.071801, 0.0826089, 0.0996923, 0.118934, 0.139534,
-             0.152036, 0.19888, 0.219307, 0.250201, 0.279543, 0.303425, 0.333486, 0.361688, 0.432412, 0.449959,
-             0.516771, 0.59716, 0.687907, 0.955484, 0.972082, 0.906222, 0.882957, 0.667665, 0.457709, 0.265371,
-             0.0926473, 0.0708056, 0.0489661, 0.0277671, 0.00653886]
-        ]
+    probabilities = np.empty((molNUM, ensembleNUM))
+    probabilities[0] = np.asarray(
+        [0.0118298, 0.0720250, 0.1321300, 0.2457230, 0.3622290, 0.6249910, 0.9031510, 0.9662930, 0.9996000, 0.9999550,
+          0.9999910, 0.9982230, 0.9798070, 0.8255240, 0.7010270, 0.6480470, 0.6335650, 0.5958800, 0.5436750, 0.5033890,
+          0.4499950, 0.4540130, 0.3828920, 0.3446280, 0.3148250, 0.2910750, 0.2724920, 0.2350670, 0.1673730, 0.1316270,
+          0.1646670, 0.1737700, 0.1258730, 0.0889188, 0.0899126, 0.0872398, 0.0561983, 0.0698249, 0.0540158, 0.0505829,
+          0.0502181, 0.0496727, 0.0405529, 0.0559383]
     )
+
+    # poly = np.polyfit(np.arange(ensembleNUM), probabilities[0], 5)
+    # probabilities[0] = np.poly1d(poly)(np.arange(ensembleNUM))
+    #
+    for i in range(molNUM):
+        probabilities[i] = probabilities[0] / (1.05 ** i)
+
+    for i in range(len(probabilities[0])):
+        for k in range(3):
+            probabilities[k][i] *= np.random.normal(1, .025)
 
     guessLOWER = np.zeros(ensembleNUM)
     guessUPPER = np.ones(ensembleNUM)
@@ -375,7 +386,7 @@ if __name__ == '__main__':
     #              READ csv-DATA FILES INTO WAVELENGTH & ABSORPTION MATRICES: (SIZE) N x wavelengthNUM                 #
     # ---------------------------------------------------------------------------------------------------------------- #
 
-    data_protein_files_list = ['DataFP/mSCARLET.csv', 'DataFP/FusionRED.csv', 'DataFP/mCHERRY.csv']
+    data_protein_files_list = ['DataFP/mSCARLET.csv', 'DataFP/FusionRED.csv', 'DataFP/mCHERRY.csv', 'DataFP/mCHERRY.csv', 'DataFP/mCHERRY.csv']
     protein_plot_colors = ['r', 'b', 'k']
 
     wavelengthNUM = 100
@@ -399,6 +410,7 @@ if __name__ == '__main__':
     termsNUM = 3
     envelopeWIDTH = 100000
     envelopeCENTER = 0
+    chiNUM = 50000
 
     SystemArgs = dict(
         gammaMATRIXpopd=gammaMATRIXpopd,
@@ -421,7 +433,7 @@ if __name__ == '__main__':
         ensembleNUM=ensembleNUM,
         threadNUM=cpu_count(),
         rho_0=rho_0,
-        spectra_timeAMP=10000,
+        spectra_timeAMP=5000,
         spectra_timeDIM=1000,
         spectra_fieldAMP=8e-6,
         guessLOWER=guessLOWER,
@@ -437,57 +449,31 @@ if __name__ == '__main__':
         termsNUM=termsNUM,
         envelopeWIDTH=envelopeWIDTH,
         envelopeCENTER=envelopeCENTER,
-        modulationINDXlist=[(3, 1, 2)]
-        # modulationINDXlist=[(1, 2, 3), (1, 3, 2), (2, 1, 3), (2, 3, 1), (3, 1, 2), (3, 2, 1),]
+        # modulationINDXlist=[(3, 1, 2)],
+        modulationINDXlist=[(1, 2, 3), (1, 3, 2), (2, 1, 3), (2, 3, 1), (3, 1, 2), (3, 2, 1),],
+        chiNUM=chiNUM,
+        frequencyMC=np.random.uniform(550., 750., (chiNUM, 3))
     )
 
     start = time.time()
 
+    # ---------------------------------------------------------------------------------------------------------------- #
+    #                  MONTE-CARLO DETERMINATION OF CHI(1) AND CHI(3) CORRELATIONS BETWEEN MOLECULES                   #
+    # ---------------------------------------------------------------------------------------------------------------- #
+
     system = OFC(SystemVars, **SystemArgs)
-    system.calculate_ofc_system(SystemVars)
-    with open("Pickle/pol3DIST5000_" + str(SystemVars.basisNUM) + "_4lvls.pickle", "wb") as dist_file:
-        pickle.dump(
-            {
-                "pol3DIST_EMPTY": system.polarizationTOTALEMPTY_DIST,
-                "pol3DIST_FIELD": system.polarizationTOTALFIELD_DIST,
-                "pol3INDX": system.polINDX,
-            },
-            dist_file
-        )
-    print('TIME ELAPSED FOR OFC RESPONSE CALCULATION:', time.time() - start, 'seconds')
-
-    field1, field2 = plot_field_pol_params(system, SystemVars)
-    with open("Pickle/polARGS5000_8.pickle", "wb") as args_file:
-        pickle.dump(
-            {
-                "freqNUM": len(system.frequency),
-                "combNUM": SystemVars.combNUM,
-                "resolutionNUM": SystemVars.resolutionNUM,
-                "omegaM1": SystemVars.omegaM1,
-                "omegaM2": SystemVars.omegaM2,
-                "combGAMMA": SystemVars.combGAMMA,
-                "freqDEL": SystemVars.freqDEL,
-                "termsNUM": SystemVars.termsNUM,
-                "basisNUM": SystemVars.basisNUM,
-                "envelopeWIDTH": SystemVars.envelopeWIDTH,
-                "envelopeCENTER": SystemVars.envelopeCENTER,
-                "field1FREQ": system.field1FREQ / SystemVars.freqDEL,
-                "field2FREQ": system.field2FREQ / SystemVars.freqDEL,
-                "freq12": system.freq12 / SystemVars.freqDEL,
-                "freq21": system.freq21 / SystemVars.freqDEL,
-                "field1": field1,
-                "field2": field2,
-                "frequency": system.frequency / SystemVars.freqDEL,
-            },
-            args_file
-        )
-
-    fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True)
-
-    ax[0].plot(system.frequency, system.polarizationTOTALFIELD_DIST.sum(axis=(0, 1, 2, 3)).real, 'k')
-    ax[0].plot(system.frequency, system.polarizationTOTALEMPTY_DIST.sum(axis=(0, 1, 2, 3)).real, 'r')
-
-    ax[1].plot(system.frequency, system.polarizationTOTALFIELD_DIST.sum(axis=(0, 1, 2, 3)).imag, 'k')
-    ax[1].plot(system.frequency, system.polarizationTOTALEMPTY_DIST.sum(axis=(0, 1, 2, 3)).imag, 'r')
+    system.calculate_susceptibilities(SystemVars)
+    fig, ax = plt.subplots(nrows=1, ncols=1)
+    ax.plot(energyFACTOR * wavelength2freqFACTOR / system.omega_chi, np.asarray([np.abs(system.probabilities[i].T.dot(system.chi1DIST[i]))
+                                                                                 for i in range(molNUM)]).real.T, linestyle='-.')
+    for i in range(3):
+        system.chi3DIST[i] *= MU[i] * MU[i] * MUvibr[i] * MUvibr[i]
+    np.set_printoptions(precision=3)
+    for i in range(molNUM):
+        print(system.gammaMATRIX[i], '\n \n')
+    print(np.corrcoef(np.asarray([np.abs(system.probabilities[i].T.dot(system.chi1DIST[i])) for i in range(molNUM)])), '\n \n')
+    print(np.corrcoef(np.asarray([np.abs(system.probabilities[i].T.dot(system.chi3DIST[i])) for i in range(molNUM)])), '\n \n')
+    print(time.time() - start)
+    del system
 
     plt.show()
