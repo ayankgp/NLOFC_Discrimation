@@ -50,7 +50,6 @@ void pol3(ofc_molecule* ofc_mol, ofc_parameters* ofc_params, const cmplx wg_c, c
 
     if (m_k_0 >= -combRNG && m_k_0 <= combRNG - 1 && m_j_0 >= -combRNG && m_j_0 <= combRNG - 1)
     {
-        #pragma omp parallel for
         for(int out_i = 0; out_i < ofc_params->freqNUM; out_i++)
         {
             const double omega = ofc_params->frequency[out_i] - blockDEL*(- K_ - J_ + I_);
@@ -95,8 +94,6 @@ void CalculatePol3Response(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
     n = ofc_params->indices[1];
     v = ofc_params->indices[2];
 
-    printf("%ld %ld %ld \n", ofc_params->indices[0], ofc_params->indices[1], ofc_params->indices[2]);
-
     cmplx wg_nl = ofc_mol->energies[n] - ofc_mol->energies[l] + I * ofc_mol->gammaMATRIX[n * levelsNUM + l];
     cmplx wg_vl = ofc_mol->energies[v] - ofc_mol->energies[l] + I * ofc_mol->gammaMATRIX[v * levelsNUM + l];
     cmplx wg_ml = ofc_mol->energies[m] - ofc_mol->energies[l] + I * ofc_mol->gammaMATRIX[m * levelsNUM + l];
@@ -111,15 +108,14 @@ void CalculatePol3Response(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
     //  THE FOLLOWING 8 CALLS ARE FOR THE 8 SPECTROSCOPIC TERMS: (a1), (a2), ...., (d1), (d2)   //                                                                         //
     //==========================================================================================//
 
-    pol3(ofc_mol, ofc_params, -conj(wg_vl), -conj(wg_nl), -conj(wg_ml), -1);
-    pol3(ofc_mol, ofc_params, -conj(wg_nv), -conj(wg_mv), wg_vl, 1);
-    pol3(ofc_mol, ofc_params, -conj(wg_nv), wg_vm, -conj(wg_ml), 1);
+//    pol3(ofc_mol, ofc_params, -conj(wg_vl), -conj(wg_nl), -conj(wg_ml), -1);
+//    pol3(ofc_mol, ofc_params, -conj(wg_nv), -conj(wg_mv), wg_vl, 1);
+//    pol3(ofc_mol, ofc_params, -conj(wg_nv), wg_vm, -conj(wg_ml), 1);
     pol3(ofc_mol, ofc_params, -conj(wg_mn), wg_nl, wg_vl, -1);
-    pol3(ofc_mol, ofc_params, wg_vn, -conj(wg_nl), -conj(wg_ml), 1);
-    pol3(ofc_mol, ofc_params, wg_nm, -conj(wg_mv), wg_vl, -1);
-    pol3(ofc_mol, ofc_params, wg_nm, wg_vm, -conj(wg_ml), -1);
+//    pol3(ofc_mol, ofc_params, wg_vn, -conj(wg_nl), -conj(wg_ml), 1);
+//    pol3(ofc_mol, ofc_params, wg_nm, -conj(wg_mv), wg_vl, -1);
+//    pol3(ofc_mol, ofc_params, wg_nm, wg_vm, -conj(wg_ml), -1);
     pol3(ofc_mol, ofc_params, wg_ml, wg_nl, wg_vl, 1);
-
 }
 
 void Chi1(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)

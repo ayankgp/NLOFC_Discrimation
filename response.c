@@ -16,8 +16,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <nlopt.h>
-#include <omp.h>
 #include <time.h>
+#include <omp.h>
 #include "OFCintegral.h"
 #define ERROR_BOUND 1.0E-8
 #define NLOPT_XTOL 1.0E-6
@@ -396,16 +396,21 @@ void CalculateOFCResponse(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
     //                   CREATING THE ENSEMBLE OF MOLECULES                   //
     // ---------------------------------------------------------------------- //
 
-    for(int j=0; j<ofc_params->ensembleNUM; j++)
+    #pragma omp parallel
     {
-        CalculatePol3Response(ensemble[j], ofc_params);
-        for(int i=0; i<ofc_params->freqNUM; i++)
+        omp_set_dynamic(0);
+        omp_set_num_threads(11);
+        #pragma omp for
+        for(int j=0; j<ofc_params->ensembleNUM; j++)
         {
-            ofc_mol->polarizationMOLECULE[j * ofc_params->freqNUM + i] = ensemble[j]->polarizationINDEX[i];
+            CalculatePol3Response(ensemble[j], ofc_params);
+            for(int i=0; i<ofc_params->freqNUM; i++)
+            {
+                ofc_mol->polarizationMOLECULE[j * ofc_params->freqNUM + i] = ensemble[j]->polarizationINDEX[i];
+            }
+            free_ofc_molecule(ensemble[j]);
         }
-        free_ofc_molecule(ensemble[j]);
     }
-
 }
 
 
