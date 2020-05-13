@@ -21,7 +21,7 @@ from FP_QRdiscrimination import ADict
 import matplotlib.cm as cm
 
 
-class QRD():
+class QRD:
     """
     Calculates the QR decomposition to calculate orthogonal heterodyne fields in OFC experiment
     """
@@ -85,19 +85,21 @@ class QRD():
         arrayFREQ_FC = self.frequency[:, np.newaxis] * self.freqDEL
         arrayCOMB_FC = (self.freqDEL * np.arange(self.combNUM))[np.newaxis, :]
 
-        arrayCOMB_CB = np.arange(self.combNUM)[:, np.newaxis]
-        arrayBASIS_CB = np.linspace(0, self.combNUM, self.basisNUM_CB + 6, endpoint=True)[3:-3][np.newaxis, :]
+        # arrayCOMB_CB = np.arange(self.combNUM)[:, np.newaxis]
+        # arrayBASIS_CB = np.linspace(0, self.combNUM, self.basisNUM_CB + 6, endpoint=True)[3:-3][np.newaxis, :]
 
-        arrayCOMB_FB = np.arange((self.combNUM + 1) * self.resolutionNUM * 2)[:, np.newaxis]
-        arrayBASIS_FB = np.linspace(0, self.combNUM, self.basisNUM_FB + 2, endpoint=True)[1:-1][np.newaxis, :] * self.resolutionNUM * 2
+        # arrayCOMB_FB = np.arange((self.combNUM + 1) * self.resolutionNUM * 2)[:, np.newaxis]
+        # arrayBASIS_FB = np.linspace(0, self.combNUM, self.basisNUM_FB + 2, endpoint=True)[1:-1][np.newaxis, :] * self.resolutionNUM * 2
 
+        self.freq2combMATRIX = np.empty((self.freqNUM, self.combNUM), dtype=np.float32)
         self.freq2combMATRIX = self.combGAMMA / ((arrayFREQ_FC - 2 * self.omegaM2 + self.omegaM1 - arrayCOMB_FC) ** 2 + self.combGAMMA ** 2) + \
                     self.combGAMMA / ((arrayFREQ_FC - 2 * self.omegaM1 + self.omegaM2 - arrayCOMB_FC) ** 2 + self.combGAMMA ** 2)
 
         self.freq2basis_func()
-        # plt.figure()
-        # plt.plot(self.freq2basisMATRIX.T)
-        # plt.plot(self.freq2basisMATRIX.T.sum(axis=1))
+        plt.figure()
+        plt.plot(self.freq2basisMATRIX.T)
+        plt.plot(self.freq2basisMATRIX.T.sum(axis=1))
+        plt.show()
 
         for i in range(self.basisNUM_FB):
             self.freq2basisMATRIX[i] *= self.freq2combMATRIX.sum(axis=1)
@@ -210,54 +212,65 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     import time
 
-    with open("polARGS500_1500.pickle", "rb") as f_args:
-        args = pickle.load(f_args)
-    molNUM = args['molNUM']
-    freqNUM = args['freqNUM']
-    freqDEL = args['freqDEL']
-    frequency = args['frequency']
+    with open('pol30.pickle', 'rb') as f:
+        data = pickle.load(f)
 
-    pol3_FIELD = np.empty((molNUM, freqNUM), dtype=np.complex)
-    pol3_EMPTY = np.empty((molNUM, freqNUM), dtype=np.complex)
+    molNUM = 3
+    timeFACTOR = 2.418884e-5
+    polarizationTOTALEMPTY = data['pol3empty']
+    polarizationTOTALFIELD = data['pol3field']
+    field1FREQ = data['field1FREQ']
+    field2FREQ = data['field2FREQ']
+    frequency = data['frequency']
+    freqNUM = frequency.size
+    field1 = data['field1']
+    field2 = data['field2']
 
-    for i in range(molNUM):
-        with open("pol3DIST500_1500" + ".pickle", "rb") as f_data:
-            data = pickle.load(f_data)
+    with open('pol3_args0.pickle', 'rb') as f_args:
+        data = pickle.load(f_args)
 
-            pol3_EMPTY[i] = data['pol3DIST'].sum(axis=(0, 1, 2))[i]
-            # pol3_FIELD[i] = data['polFIELD']
+    combNUM = data['combNUM']
+    resolutionNUM = data['resolutionNUM']
+    omegaM1 = data['omegaM1']
+    omegaM2 = data['omegaM2']
+    freqDEL = data['freqDEL']
+    combGAMMA = data['combGAMMA']
+    termsNUM = data['termsNUM']
+    envelopeWIDTH = data['envelopeWIDTH']
+    envelopeCENTER = data['envelopeCENTER']
+    chiNUM = data['chiNUM']
 
     SystemVars = ADict(
-        molNUM=args['molNUM'],
-        combNUM=args['combNUM'],
+        molNUM=molNUM,
+        combNUM=5000,
         freqNUM=freqNUM,
-        resolutionNUM=args['resolutionNUM'],
-        omegaM1=args['omegaM1'],
-        omegaM2=args['omegaM2'],
-        combGAMMA=args['combGAMMA'],
+        resolutionNUM=3,
+        omegaM1=omegaM1,
+        omegaM2=omegaM2,
+        combGAMMA=combGAMMA,
         freqDEL=freqDEL,
-        termsNUM=args['termsNUM'],
-        frequency=args['frequency'],
-        field1FREQ=args['field1FREQ'],
-        field2FREQ=args['field2FREQ'],
-        field1=args['field1'],
-        field2=args['field2'],
-        round=6,
+        termsNUM=termsNUM,
+        frequency=frequency,
+        field1FREQ=field1FREQ,
+        field2FREQ=field2FREQ,
+        field1=field1,
+        field2=field2,
+        round=1,
         basisNUM_CB=50,
         basisENVwidth_CB=500,
-        basisNUM_FB=50,
-        basisENVwidth_FB=500
+        basisNUM_FB=10,
+        basisENVwidth_FB=1000
     )
 
     SystemArgs = dict(
-        pol3_EMPTY=pol3_EMPTY,
-        pol3_FIELD=pol3_FIELD
+        pol3_EMPTY=polarizationTOTALEMPTY,
+        pol3_FIELD=polarizationTOTALFIELD
     )
 
     start = time.time()
     system = QRD(SystemVars, **SystemArgs)
     system.basis_transform()
-    system.calculate_heterodyne()
+    # system.calculate_heterodyne()
     print("Time elapsed: ", time.time() - start)
 
     plt.show()

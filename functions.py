@@ -74,7 +74,7 @@ def plot_dynamics(axis, x, y, xlabel, ylabel):
     return
 
 
-def nonuniform_frequency_range_3(params, range1, range2):
+def nonuniform_frequency_range_3(params):
     """
     Generating frequency axis
     :param params:
@@ -83,8 +83,11 @@ def nonuniform_frequency_range_3(params, range1, range2):
     :return:
     """
 
-    pointsFREQpolarization = np.linspace(range1 * params.combNUM * params.freqDEL, range2 * params.combNUM * params.freqDEL, 2 * params.combNUM + 1)[:, np.newaxis]
-    pointsFREQcomb = np.linspace(range1 * params.combNUM * params.freqDEL, range2 * params.combNUM * params.freqDEL, 2 * params.combNUM + 1)[:, np.newaxis]
+    range1 = params.rangeFREQ[0]
+    range2 = params.rangeFREQ[1]
+
+    pointsFREQpolarization = np.linspace(range1 * params.combNUM * params.freqDEL, range2 * params.combNUM * params.freqDEL, params.combNUM + 1)[:, np.newaxis]
+    pointsFREQcomb = np.linspace(range1 * params.combNUM * params.freqDEL, range2 * params.combNUM * params.freqDEL, params.combNUM + 1)[:, np.newaxis]
     resolution = np.linspace(-0.02 * params.freqDEL, 0.02 * params.freqDEL, params.resolutionNUM)
 
     frequency_12 = 2 * params.omegaM2 - params.omegaM1 + pointsFREQpolarization + resolution

@@ -396,20 +396,15 @@ void CalculateOFCResponse(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
     //                   CREATING THE ENSEMBLE OF MOLECULES                   //
     // ---------------------------------------------------------------------- //
 
-    #pragma omp parallel
+    #pragma omp parallel for num_threads(11)
+    for(int j=0; j<ofc_params->ensembleNUM; j++)
     {
-        omp_set_dynamic(0);
-        omp_set_num_threads(11);
-        #pragma omp for
-        for(int j=0; j<ofc_params->ensembleNUM; j++)
+        CalculatePol3Response(ensemble[j], ofc_params);
+        for(int i=0; i<ofc_params->freqNUM; i++)
         {
-            CalculatePol3Response(ensemble[j], ofc_params);
-            for(int i=0; i<ofc_params->freqNUM; i++)
-            {
-                ofc_mol->polarizationMOLECULE[j * ofc_params->freqNUM + i] = ensemble[j]->polarizationINDEX[i];
-            }
-            free_ofc_molecule(ensemble[j]);
+            ofc_mol->polarizationMOLECULE[j * ofc_params->freqNUM + i] = ensemble[j]->polarizationINDEX[i];
         }
+        free_ofc_molecule(ensemble[j]);
     }
 }
 

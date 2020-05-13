@@ -203,14 +203,15 @@ class OFC:
         self.create_ofc_parameters(ofc_parameters, ofc_variables)
         molENSEMBLE = [OFCMolecule() for _ in range(ofc_variables.molNUM)]
 
-        basisRNG = int((ofc_parameters.basisNUM - ofc_parameters.basisNUM % 2) / 2)
-        for I_ in range(-basisRNG, basisRNG + ofc_parameters.basisNUM % 2):
+        basisRNG = int((ofc_parameters.basisNUM - (ofc_parameters.basisNUM % 2)) / 2)
+        print(basisRNG)
+        for I_ in range(-basisRNG, basisRNG + (ofc_parameters.basisNUM % 2)):
             ofc_parameters.basisINDX[0] = I_
             self.polINDX[I_] = I_
-            for J_ in range(-basisRNG, basisRNG + ofc_parameters.basisNUM % 2):
+            for J_ in range(-basisRNG, basisRNG + (ofc_parameters.basisNUM % 2)):
                 ofc_parameters.basisINDX[1] = J_
                 self.polINDX[J_] = J_
-                for K_ in range(-basisRNG, basisRNG + ofc_parameters.basisNUM % 2):
+                for K_ in range(-basisRNG, basisRNG + (ofc_parameters.basisNUM % 2)):
                     ofc_parameters.basisINDX[2] = K_
                     self.polINDX[K_] = K_
                     print(I_, J_, K_)
@@ -292,7 +293,7 @@ if __name__ == '__main__':
     #                       MOLECULAR CONSTANTS, VARIABLES, VECTORS & MATRICES                   #
     # ------------------------------------------------------------------------------------------ #
 
-    molNUM = 1
+    molNUM = 3
     levelsNUM = 4
     ensembleNUM = 44
     groundNUM = 2
@@ -399,16 +400,18 @@ if __name__ == '__main__':
     #              OFC PARAMETERS                #
     # -------------------------------------------#
 
-    combNUM = 500
+    combNUM = 5000
     resolutionNUM = 3
-    omegaM1 = 0.5 * timeFACTOR * 1e1
-    omegaM2 = 0.6 * timeFACTOR * 1e1
-    freqDEL = 1.1 * timeFACTOR * 1e1
+    omegaM1 = 0.49 * timeFACTOR
+    omegaM2 = 0.66 * timeFACTOR
+    freqDEL = 1.15 * timeFACTOR
     combGAMMA = 1e-10 * timeFACTOR
     termsNUM = 3
     envelopeWIDTH = 100000
     envelopeCENTER = 0
     chiNUM = 50000
+
+    rangeFREQ = np.asarray([-1., 1.4])
 
     SystemArgs = dict(
         gammaMATRIXpopd=gammaMATRIXpopd,
@@ -438,7 +441,7 @@ if __name__ == '__main__':
         guessUPPER=guessUPPER,
         iterMAX=1,
         combNUM=combNUM,
-        basisNUM=1,
+        basisNUM=2,
         resolutionNUM=resolutionNUM,
         omegaM1=omegaM1,
         omegaM2=omegaM2,
@@ -450,7 +453,8 @@ if __name__ == '__main__':
         modulationINDXlist=[(3, 1, 2)],
         # modulationINDXlist=[(1, 2, 3), (1, 3, 2), (2, 1, 3), (2, 3, 1), (3, 1, 2), (3, 2, 1),],
         chiNUM=chiNUM,
-        frequencyMC=np.random.uniform(550., 750., (chiNUM, 3))
+        frequencyMC=np.random.uniform(550., 750., (chiNUM, 3)),
+        rangeFREQ=rangeFREQ
     )
 
     start = time.time()
@@ -458,7 +462,7 @@ if __name__ == '__main__':
     # ---------------------------------------------------------------------------------------------------------------- #
     #                  MONTE-CARLO DETERMINATION OF CHI(1) AND CHI(3) CORRELATIONS BETWEEN MOLECULES                   #
     # ---------------------------------------------------------------------------------------------------------------- #
-    if False:
+    if True:
         system = OFC(SystemVars, **SystemArgs)
         system.calculate_susceptibilities(SystemVars)
         fig, ax = plt.subplots(nrows=1, ncols=1)
@@ -474,22 +478,31 @@ if __name__ == '__main__':
         print(time.time() - start)
         del system
 
+    start = time.time()
+    freqDELarray = np.asarray([1.1]) * timeFACTOR * 1e0
+
+    SystemVars.freqDEL = freqDELarray[0]
     system = OFC(SystemVars, **SystemArgs)
     system.calculate_ofc_system(SystemVars)
 
-    fig_pol3, ax_pol3 = plt.subplots(nrows=molNUM, ncols=2)
+    fig_pol3, ax_pol3 = plt.subplots(nrows=molNUM, ncols=2, sharex=True)
+    fig_pol3.suptitle(f"{freqDELarray[0] / timeFACTOR}")
     field1, field2 = plot_field_pol_params(system, SystemVars)
-    polMAX = max([max(
-        np.abs(system.polarizationTOTALEMPTY[_]).max(),
-        np.abs(system.polarizationTOTALFIELD[_]).max()) for _ in range(molNUM)])
 
-    print(system.polarizationTOTALEMPTY.max())
+    print(time.time() - start)
+
+    for molINDX in range(molNUM):
+        system.polarizationTOTALEMPTY[molINDX] *= MU[molINDX]*MU[molINDX]*MUvibr[molINDX]*MUvibr[molINDX]
+        system.polarizationTOTALFIELD[molINDX] *= MU[molINDX]*MU[molINDX]*MUvibr[molINDX]*MUvibr[molINDX]
+
+    polMAX = [max(np.abs(system.polarizationTOTALEMPTY[_]).max(), np.abs(system.polarizationTOTALFIELD[_]).max()) for _ in range(molNUM)]
+
     if molNUM > 1:
         for molINDX in range(molNUM):
-            # ax_pol3[molINDX, 0].plot(system.field1FREQ / (timeFACTOR * 2 * np.pi), field1 * polMAX / field1.max(), 'm', alpha=0.4)
-            # ax_pol3[molINDX, 0].plot(system.field2FREQ / (timeFACTOR * 2 * np.pi), field2 * polMAX / field1.max(), 'g', alpha=0.4)
-            # ax_pol3[molINDX, 1].plot(system.field1FREQ / (timeFACTOR * 2 * np.pi), field1 * polMAX / field1.max(), 'm', alpha=0.4)
-            # ax_pol3[molINDX, 1].plot(system.field2FREQ / (timeFACTOR * 2 * np.pi), field2 * polMAX / field1.max(), 'g', alpha=0.4)
+            ax_pol3[molINDX, 0].plot(system.field1FREQ / (timeFACTOR * 2 * np.pi), field1 * polMAX[molINDX] / field1.max(), 'm', alpha=0.4)
+            ax_pol3[molINDX, 0].plot(system.field2FREQ / (timeFACTOR * 2 * np.pi), field2 * polMAX[molINDX] / field1.max(), 'g', alpha=0.4)
+            ax_pol3[molINDX, 1].plot(system.field1FREQ / (timeFACTOR * 2 * np.pi), field1 * polMAX[molINDX] / field1.max(), 'm', alpha=0.4)
+            ax_pol3[molINDX, 1].plot(system.field2FREQ / (timeFACTOR * 2 * np.pi), field2 * polMAX[molINDX] / field1.max(), 'g', alpha=0.4)
             ax_pol3[molINDX, 0].plot(system.frequency / (timeFACTOR * 2 * np.pi), system.polarizationTOTALEMPTY[molINDX].real, 'r', linewidth=1., alpha=0.7)
             ax_pol3[molINDX, 0].plot(system.frequency / (timeFACTOR * 2 * np.pi), system.polarizationTOTALFIELD[molINDX].real, 'b', linewidth=1., alpha=0.7)
             ax_pol3[molINDX, 1].plot(system.frequency / (timeFACTOR * 2 * np.pi), system.polarizationTOTALEMPTY[molINDX].imag, 'r', linewidth=1., alpha=0.7)
@@ -497,4 +510,34 @@ if __name__ == '__main__':
     else:
         ax_pol3[0].plot(system.frequency / (timeFACTOR * 2 * np.pi), system.polarizationTOTALEMPTY[0].real, 'r', linewidth=1., alpha=0.7)
         ax_pol3[1].plot(system.frequency / (timeFACTOR * 2 * np.pi), system.polarizationTOTALEMPTY[0].imag, 'b', linewidth=1., alpha=0.7)
+
+    with open('pol3.pickle', 'wb') as f:
+        pickle.dump(
+            {
+                "pol3field": system.polarizationTOTALFIELD,
+                "pol3empty": system.polarizationTOTALEMPTY,
+                "field1FREQ": system.field1FREQ,
+                "field2FREQ": system.field2FREQ,
+                "frequency": system.frequency,
+                "field1": field1,
+                "field2": field2
+            },
+            f)
+
+    with open('pol3_args.pickle', 'wb') as f:
+        pickle.dump(
+            {
+                "combNUM": combNUM,
+                "resolutionNUM": resolutionNUM,
+                "omegaM1": omegaM1,
+                "omegaM2": omegaM2,
+                "freqDEL": freqDEL,
+                "combGAMMA": combGAMMA,
+                "termsNUM": termsNUM,
+                "envelopeWIDTH": envelopeWIDTH,
+                "envelopeCENTER": envelopeCENTER,
+                "chiNUM": chiNUM,
+                "rangeFREQ": rangeFREQ
+            },
+            f)
     plt.show()
