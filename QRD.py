@@ -85,8 +85,8 @@ class QRD:
         arrayFREQ_FC = self.frequency[:, np.newaxis] * self.freqDEL
         arrayCOMB_FC = (self.freqDEL * np.arange(self.combNUM))[np.newaxis, :]
 
-        # arrayCOMB_CB = np.arange(self.combNUM)[:, np.newaxis]
-        # arrayBASIS_CB = np.linspace(0, self.combNUM, self.basisNUM_CB + 6, endpoint=True)[3:-3][np.newaxis, :]
+        arrayCOMB_CB = np.arange(self.combNUM)[:, np.newaxis]
+        arrayBASIS_CB = np.linspace(0, self.combNUM, self.basisNUM_CB + 6, endpoint=True)[3:-3][np.newaxis, :]
 
         # arrayCOMB_FB = np.arange((self.combNUM + 1) * self.resolutionNUM * 2)[:, np.newaxis]
         # arrayBASIS_FB = np.linspace(0, self.combNUM, self.basisNUM_FB + 2, endpoint=True)[1:-1][np.newaxis, :] * self.resolutionNUM * 2

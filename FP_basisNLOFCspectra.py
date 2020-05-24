@@ -134,7 +134,7 @@ class OFC:
 
         self.energies = np.ascontiguousarray(self.energies)
         self.levelsNUM = ofc_variables.levelsNUM
-        self.frequency, self.freq12, self.freq21, self.field1FREQ, self.field2FREQ = nonuniform_frequency_range_3(ofc_variables, -1.6, 2.4)
+        self.frequency, self.freq12, self.freq21, self.field1FREQ, self.field2FREQ = nonuniform_frequency_range_3(ofc_variables)
         self.omega_chi = np.linspace(0.425 * ofc_variables.freqDEL * ofc_variables.combNUM, 0.675 * ofc_variables.freqDEL * ofc_variables.combNUM, ofc_variables.chiNUM)
         self.polarizationEMPTY = np.zeros((ofc_variables.molNUM, ofc_variables.ensembleNUM, self.frequency.size), dtype=np.complex)
         self.polarizationFIELD = np.zeros((ofc_variables.molNUM, ofc_variables.ensembleNUM, self.frequency.size), dtype=np.complex)
@@ -462,7 +462,7 @@ if __name__ == '__main__':
     # ---------------------------------------------------------------------------------------------------------------- #
     #                  MONTE-CARLO DETERMINATION OF CHI(1) AND CHI(3) CORRELATIONS BETWEEN MOLECULES                   #
     # ---------------------------------------------------------------------------------------------------------------- #
-    if True:
+    if False:
         system = OFC(SystemVars, **SystemArgs)
         system.calculate_susceptibilities(SystemVars)
         fig, ax = plt.subplots(nrows=1, ncols=1)
@@ -481,8 +481,8 @@ if __name__ == '__main__':
     start = time.time()
     freqDELarray = np.asarray([1.1]) * timeFACTOR * 1e0
 
-    SystemVars.freqDEL = freqDELarray[0]
     system = OFC(SystemVars, **SystemArgs)
+    print((system.frequency - 2 * SystemVars.omegaM2 + SystemVars.omegaM1) / SystemVars.freqDEL)
     system.calculate_ofc_system(SystemVars)
 
     fig_pol3, ax_pol3 = plt.subplots(nrows=molNUM, ncols=2, sharex=True)
