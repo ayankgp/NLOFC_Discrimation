@@ -402,9 +402,9 @@ if __name__ == '__main__':
 
     combNUM = 5000
     resolutionNUM = 3
-    omegaM1 = 0.49 * timeFACTOR
-    omegaM2 = 0.66 * timeFACTOR
-    freqDEL = 1.15 * timeFACTOR
+    omegaM1 = 0.47 * timeFACTOR * 1.05
+    omegaM2 = 0.63 * timeFACTOR * 1.05
+    freqDEL = 1.10 * timeFACTOR * 1.05
     combGAMMA = 1e-10 * timeFACTOR
     termsNUM = 3
     envelopeWIDTH = 100000

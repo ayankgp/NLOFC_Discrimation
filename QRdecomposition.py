@@ -70,43 +70,34 @@ class QRD:
         arrayBASIS_FB = np.linspace(self.rangeFREQ[0] * self.combNUM, self.rangeFREQ[1] * self.combNUM,
                                     self.basisNUM_FB, endpoint=False)[np.newaxis, :, np.newaxis] * self.freqDEL
         BASIS_bw = int((arrayBASIS_FB[0, 1, 0] - arrayBASIS_FB[0, 0, 0]) / self.freqDEL + 0.5)
-        print(BASIS_bw, self.basiswidth_FB)
         arrayCOMB_FB1 = np.linspace(0., BASIS_bw, self.basiswidth_FB, endpoint=False)[np.newaxis,  np.newaxis, :] * self.freqDEL
-        print(arrayCOMB_FB1 / self.freqDEL)
         arrayCOMB_FB2 = np.linspace(0., BASIS_bw, self.basiswidth_FB, endpoint=False)[np.newaxis,  np.newaxis, :] * self.freqDEL
 
         plt.figure()
         arrayFB1 = (arrayBASIS_FB + arrayCOMB_FB1)
         arrayFB2 = (arrayBASIS_FB + arrayCOMB_FB2)
 
-        print(arrayFB1 / self.freqDEL)
-        # print((arrayFREQ_FB.sum(axis=(1,2)) + self.omegaM2 * 2 - self.omegaM1) / self.freqDEL)
-        print((arrayFREQ_FB.sum(axis=(1,2)) - self.omegaM2 * 2 + self.omegaM1) / self.freqDEL)
-
-        freq2basisMATRIX_1 = self.combGAMMA / ((arrayFREQ_FB - self.omegaM2 * 2 + self.omegaM1 - arrayFB1) ** 2 + self.combGAMMA ** 2) \
+        freq2basisMATRIX = self.combGAMMA / ((arrayFREQ_FB - self.omegaM2 * 2 + self.omegaM1 - arrayFB1) ** 2 + self.combGAMMA ** 2) \
                              + self.combGAMMA / ((arrayFREQ_FB - self.omegaM1 * 2 + self.omegaM2 - arrayFB2) ** 2 + self.combGAMMA ** 2)
-        # freq2basisMATRIX = (freq2basisMATRIX_1 + freq2basisMATRIX_2).sum(axis=2)
-        plt.plot(self.frequency / self.freqDEL, freq2basisMATRIX_1.sum(axis=2))
-        # plt.plot(self.frequency / self.freqDEL, freq2basisMATRIX_2.sum(axis=2))
+        plt.plot(self.frequency / self.freqDEL, freq2basisMATRIX.sum(axis=2))
 
-        # pointsFREQpolarization = np.linspace(self.rangeFREQ[0] * self.combNUM * self.freqDEL,
-        #                                      self.rangeFREQ[1] * self.combNUM * self.freqDEL,
-        #                                      self.combNUM + 1)[:, np.newaxis]
-        # resolution = np.linspace(-0.02, 0.02, self.resolutionNUM) * self.freqDEL
+        colors = ['r', 'b', 'k']
 
-        # frequency_12 = (2 * self.omegaM2 - self.omegaM1 + pointsFREQpolarization + resolution) / self.freqDEL
-        # frequency_21 = (2 * self.omegaM1 - self.omegaM2 + pointsFREQpolarization + resolution) / self.freqDEL
-        # frequency_1 = (self.omegaM1 + pointsFREQpolarization + resolution) / self.freqDEL
-        # frequency_2 = (self.omegaM2 + pointsFREQpolarization + resolution) / self.freqDEL
-        # freq = (pointsFREQpolarization + resolution) / self.freqDEL
-        #
-        # plt.plot(frequency_12, np.zeros_like(frequency_12), 'r*-')
-        # plt.plot(frequency_21, np.zeros_like(frequency_21), 'b*-')
-        # plt.plot(frequency_1, np.zeros_like(frequency_1), 'y*-')
-        # plt.plot(frequency_2, np.zeros_like(frequency_2), 'g*-')
-        # plt.plot(freq, np.zeros_like(freq), 'k*-')
-        # plt.plot(freq2basisMATRIX)
-        # plt.imshow(freq2basisMATRIX.T.dot(freq2basisMATRIX))
+        plt.figure()
+        freq2basisMATRIX = freq2basisMATRIX.sum(axis=2)
+        print(freq2basisMATRIX.shape)
+        plt.imshow(freq2basisMATRIX.T.dot(freq2basisMATRIX).real)
+        plt.colorbar()
+
+        print(self.pol3_EMPTY.shape)
+        plt.figure()
+        for i in range(self.molNUM):
+            plt.plot(self.pol3_EMPTY.dot(freq2basisMATRIX)[i].real, color=colors[i])
+
+        fig, ax = plt.subplots(nrows=3, ncols=2)
+        for i in range(3):
+            ax[i, 0].plot(self.pol3_EMPTY[i].real, color=colors[i])
+            ax[i, 1].plot(self.pol3_EMPTY[i].imag, color=colors[i])
         plt.show()
         return
 
@@ -144,7 +135,7 @@ if __name__ == '__main__':
     envelopeCENTER = data['envelopeCENTER']
     chiNUM = data['chiNUM']
     rangeFREQ = data['rangeFREQ']
-    basisNUM_FB = 10
+    basisNUM_FB = 50
 
     SystemVars = ADict(
         molNUM=molNUM,
