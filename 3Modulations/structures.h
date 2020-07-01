@@ -73,4 +73,5 @@ typedef struct ofc_molecule{
     cmplx* chi1INDEX;
     cmplx* chi3INDEX;
     double* probabilities;
+    cmplx* chi3MATRIX;
 } ofc_molecule;

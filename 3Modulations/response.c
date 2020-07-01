@@ -233,7 +233,7 @@ double nloptJ_spectra(unsigned N, const double *optimizeSPECTRA_params, double *
 }
 
 
-void CalculateLinearResponse(spectra_molecule* spectra_mol, spectra_parameters* spectra_params)
+void CalculateLinearResponse_C(spectra_molecule* spectra_mol, spectra_parameters* spectra_params)
 //------------------------------------------------------------//
 //          CALCULATING SPECTRAL FIT FOR A MOLECULE           //
 //------------------------------------------------------------//
@@ -333,6 +333,7 @@ void copy_ofc_molecule(ofc_molecule* original, ofc_molecule* copy, ofc_parameter
     copy->chi3INDEX = (cmplx*)malloc(chiNUM*sizeof(cmplx));
     copy->probabilities = (double*)malloc(ensembleNUM*sizeof(double));
 
+
     memset(copy->energies, 0, original->levelsNUM*sizeof(double));
     memcpy(copy->gammaMATRIX, original->gammaMATRIX, levelsNUM*levelsNUM*sizeof(double));
     memcpy(copy->muMATRIX, original->muMATRIX, levelsNUM*levelsNUM*sizeof(cmplx));
@@ -365,7 +366,7 @@ void free_ofc_molecule(ofc_molecule* mol)
 }
 
 
-void CalculateOFCResponse(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
+void CalculateOFCResponse_C(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
 //------------------------------------------------------------//
 //          CALCULATING OFC RESPONSE FOR MOLECULE             //
 //------------------------------------------------------------//
@@ -409,7 +410,7 @@ void CalculateOFCResponse(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
 }
 
 
-void CalculateChi(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
+void CalculateChi_C(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
 //------------------------------------------------------------//
 //          CALCULATING Chi1 RESPONSE FOR MOLECULE            //
 //------------------------------------------------------------//

@@ -73,27 +73,19 @@ class QRD:
         arrayCOMB_FB1 = np.linspace(0., BASIS_bw, self.basiswidth_FB, endpoint=False)[np.newaxis,  np.newaxis, :] * self.freqDEL
         arrayCOMB_FB2 = np.linspace(0., BASIS_bw, self.basiswidth_FB, endpoint=False)[np.newaxis,  np.newaxis, :] * self.freqDEL
 
-        plt.figure()
         arrayFB1 = (arrayBASIS_FB + arrayCOMB_FB1)
         arrayFB2 = (arrayBASIS_FB + arrayCOMB_FB2)
 
         freq2basisMATRIX = self.combGAMMA / ((arrayFREQ_FB - self.omegaM2 * 2 + self.omegaM1 - arrayFB1) ** 2 + self.combGAMMA ** 2) \
                              + self.combGAMMA / ((arrayFREQ_FB - self.omegaM1 * 2 + self.omegaM2 - arrayFB2) ** 2 + self.combGAMMA ** 2)
-        plt.plot(self.frequency / self.freqDEL, freq2basisMATRIX.sum(axis=2))
 
         colors = ['r', 'b', 'k']
-
-        plt.figure()
         freq2basisMATRIX = freq2basisMATRIX.sum(axis=2)
-        print(freq2basisMATRIX.shape)
-        plt.imshow(freq2basisMATRIX.T.dot(freq2basisMATRIX).real)
-        plt.colorbar()
-
-        print(self.pol3_EMPTY.shape)
         plt.figure()
+        plt.plot(freq2basisMATRIX)
+
         self.pol3basisMATRIX = self.pol3_EMPTY.dot(freq2basisMATRIX)
-        for i in range(self.molNUM):
-            plt.plot(self.pol3basisMATRIX[i].real, color=colors[i])
+
 
         fig, ax = plt.subplots(nrows=3, ncols=2)
         for i in range(3):
@@ -120,13 +112,13 @@ class QRD:
                 ImatBASIS[molINDX, j] = np.vdot(heterodyne[molINDX], self.pol3basisMATRIX[j])
                 ImatFREQ[molINDX, j] = np.vdot(heterodyne[molINDX].dot(self.freq2basisMATRIX), self.pol3_EMPTY[j])
 
-        print(ImatBASIS)
-        print(ImatFREQ)
 
-        fig2, axes2 = plt.subplots(nrows=1, ncols=2, sharex=True)
+        fig2, axes2 = plt.subplots(nrows=2, ncols=1, sharex=True)
         for molINDX in range(self.molNUM):
             axes2[0].plot(heterodyne[molINDX].real, '-')
             axes2[1].plot(heterodyne[molINDX].imag, '-')
+
+        print(heterodyne.T)
 
         return
 

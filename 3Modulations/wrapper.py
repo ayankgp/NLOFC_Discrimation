@@ -108,7 +108,7 @@ class OFCMolecule(Structure):
         ('chi3DIST', POINTER(c_complex)),
         ('chi1INDEX', POINTER(c_complex)),
         ('chi3INDEX', POINTER(c_complex)),
-        ('probabilities', POINTER(c_double))
+        ('probabilities', POINTER(c_double)),
     ]
 
 
@@ -122,41 +122,41 @@ except OSError:
         """
     )
 
-lib.CalculateLinearResponse.argtypes = (
+lib.CalculateLinearResponse_C.argtypes = (
     POINTER(SpectraMolecule),
     POINTER(SpectraParameters),
 )
-lib.CalculateLinearResponse.restype = None
+lib.CalculateLinearResponse_C.restype = None
 
-lib.CalculateOFCResponse.argtypes = (
+lib.CalculateOFCResponse_C.argtypes = (
     POINTER(OFCMolecule),
     POINTER(OFCParameters),
 )
-lib.CalculateOFCResponse.restype = None
+lib.CalculateOFCResponse_C.restype = None
 
-lib.CalculateChi.argtypes = (
+lib.CalculateChi_C.argtypes = (
     POINTER(OFCMolecule),
     POINTER(OFCParameters),
 )
-lib.CalculateChi.restype = None
+lib.CalculateChi_C.restype = None
 
 
 def CalculateSpectra(spectra_mol, spectra_params):
-    return lib.CalculateLinearResponse(
+    return lib.CalculateLinearResponse_C(
         spectra_mol,
         spectra_params
     )
 
 
-def CalculateNLResponse(ofc_mol, ofc_params):
-    return lib.CalculateOFCResponse(
+def CalculateOFCResponse(ofc_mol, ofc_params):
+    return lib.CalculateOFCResponse_C(
         ofc_mol,
         ofc_params
     )
 
 
 def CalculateChi(ofc_mol, ofc_params):
-    return lib.CalculateChi(
+    return lib.CalculateChi_C(
         ofc_mol,
         ofc_params
     )

@@ -85,8 +85,8 @@ def nonuniform_frequency_range_3(params):
     range1 = params.rangeFREQ[0]
     range2 = params.rangeFREQ[1]
 
-    pointsFREQpolarization = np.linspace(range1 * params.combNUM * params.freqDEL, range2 * params.combNUM * params.freqDEL, params.combNUM, endpoint=False)[:, np.newaxis]
-    pointsFREQcomb = np.linspace(range1 * params.combNUM * params.freqDEL, range2 * params.combNUM * params.freqDEL, params.combNUM, endpoint=False)[:, np.newaxis]
+    pointsFREQpolarization = np.linspace(range1 * params.combNUM * params.freqDEL, range2 * params.combNUM * params.freqDEL, 4 * params.combNUM, endpoint=False)[:, np.newaxis]
+    pointsFREQcomb = np.linspace(range1 * params.combNUM * params.freqDEL, range2 * params.combNUM * params.freqDEL, 2 * params.combNUM, endpoint=False)[:, np.newaxis]
     resolution = np.linspace(-0.02 * params.freqDEL, 0.02 * params.freqDEL, params.resolutionNUM)
 
     frequency_123 = params.omegaM1 + params.omegaM2 - params.omegaM3 + pointsFREQpolarization + resolution
@@ -94,25 +94,31 @@ def nonuniform_frequency_range_3(params):
 
     field1FREQ = params.omegaM1 + pointsFREQcomb + resolution
     field2FREQ = params.omegaM2 + pointsFREQcomb + resolution
+    field3FREQ = params.omegaM3 + pointsFREQcomb + resolution
 
-    frequency = np.sort(np.hstack([frequency_123.flatten()]))
-    # frequency = np.sort(np.hstack([frequency_12.flatten(), frequency_21.flatten()]))
+    frequency = np.sort(np.hstack([frequency_123.flatten(), field1FREQ.flatten(), field2FREQ.flatten(), field3FREQ.flatten()]))
     field1FREQ = np.ascontiguousarray(field1FREQ.flatten())
     field2FREQ = np.ascontiguousarray(field2FREQ.flatten())
+    field3FREQ = np.ascontiguousarray(field3FREQ.flatten())
 
-    return frequency, frequency_123.flatten()
+    return frequency, frequency_123.flatten(), field1FREQ, field2FREQ, field3FREQ
 
 
-def plot_field_pol_params(system, SystemVars):
+def plot_field_pol_params(system, SystemVars, rangeFREQ):
+    range1 = rangeFREQ[0]
+    range2 = rangeFREQ[1]
     omega1MOD = system.field1FREQ[:, np.newaxis]
     omega2MOD = system.field2FREQ[:, np.newaxis]
+    omega3MOD = system.field3FREQ[:, np.newaxis]
 
-    omegaCOMB = (SystemVars.freqDEL * np.arange(-1.6*SystemVars.combNUM, 2.4*SystemVars.combNUM))[np.newaxis, :]
+    omegaCOMB = (SystemVars.freqDEL * np.linspace(range1 * SystemVars.combNUM, range2 * SystemVars.combNUM, 4 * SystemVars.combNUM, endpoint=False))[np.newaxis, :]
     # gaussian = np.exp(-(np.linspace(-SystemVars.combNUM, SystemVars.combNUM, 2 * SystemVars.combNUM)
     #                     + SystemVars.envelopeCENTER) ** 2 / (2. * SystemVars.envelopeWIDTH ** 2))[np.newaxis, :]
     field1 = (SystemVars.combGAMMA / (
             (omega1MOD - SystemVars.omegaM1 - omegaCOMB) ** 2 + SystemVars.combGAMMA ** 2)).sum(axis=1)
     field2 = (SystemVars.combGAMMA / (
             (omega2MOD - SystemVars.omegaM2 - omegaCOMB) ** 2 + SystemVars.combGAMMA ** 2)).sum(axis=1)
+    field3 = (SystemVars.combGAMMA / (
+            (omega3MOD - SystemVars.omegaM3 - omegaCOMB) ** 2 + SystemVars.combGAMMA ** 2)).sum(axis=1)
 
-    return field1, field2
+    return field1, field2, field3
