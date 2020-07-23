@@ -445,6 +445,7 @@ void CalculateChi_C(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
             ofc_mol->chi1DIST[j * ofc_params->chiNUM + i] = ensemble[j]->chi1INDEX[i];
             ofc_mol->chi3DIST[j * ofc_params->chiNUM + i] = ensemble[j]->chi3INDEX[i];
         }
+//        print_double_mat(ofc_mol->gammaMATRIX, ofc_params->levelsNUM, ofc_params->levelsNUM);
         free_ofc_molecule(ensemble[j]);
     }
 }

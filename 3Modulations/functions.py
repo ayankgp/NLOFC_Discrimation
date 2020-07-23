@@ -38,9 +38,10 @@ def get_experimental_spectra(molecule_file, wavelengthMIN, wavelengthMAX, wavele
 # ==================================================================================================================== #
 
 
-def render_axis(axis, labelSIZE='x-large', labelCOLOR='k', gridCOLOR='r', gridLINE='--'):
+def render_axis(axis, labelSIZE='xx-large', labelCOLOR='k', gridCOLOR='r', gridLINE='--', rotation=0):
     """
     Style plots for better representation
+    :param rotation: angle of rotation for tick-labels
     :param axis: axis to be rendered
     :param labelSIZE: size of ticks in plot
     :param labelCOLOR: color code for labels
@@ -58,6 +59,10 @@ def render_axis(axis, labelSIZE='x-large', labelCOLOR='k', gridCOLOR='r', gridLI
     axis.get_yaxis().set_tick_params(
         which='both', direction='in', width=1.25, labelcolor=labelCOLOR, labelsize=labelSIZE)
     axis.grid(color=gridCOLOR, linestyle=gridLINE, linewidth=0.5, alpha=0.5, b=None, which='both', axis='both')
+
+    for label in axis.get_xmajorticklabels():
+        label.set_rotation(rotation)
+        label.set_horizontalalignment("right")
     return
 
 
@@ -85,7 +90,7 @@ def nonuniform_frequency_range_3(params):
     range1 = params.rangeFREQ[0]
     range2 = params.rangeFREQ[1]
 
-    pointsFREQpolarization = np.linspace(range1 * params.combNUM * params.freqDEL, range2 * params.combNUM * params.freqDEL, 4 * params.combNUM, endpoint=False)[:, np.newaxis]
+    pointsFREQpolarization = np.linspace(range1 * params.combNUM * params.freqDEL, range2 * params.combNUM * params.freqDEL, 2 * params.combNUM, endpoint=False)[:, np.newaxis]
     pointsFREQcomb = np.linspace(range1 * params.combNUM * params.freqDEL, range2 * params.combNUM * params.freqDEL, 2 * params.combNUM, endpoint=False)[:, np.newaxis]
     resolution = np.linspace(-0.02 * params.freqDEL, 0.02 * params.freqDEL, params.resolutionNUM)
 
@@ -96,7 +101,8 @@ def nonuniform_frequency_range_3(params):
     field2FREQ = params.omegaM2 + pointsFREQcomb + resolution
     field3FREQ = params.omegaM3 + pointsFREQcomb + resolution
 
-    frequency = np.sort(np.hstack([frequency_123.flatten(), field1FREQ.flatten(), field2FREQ.flatten(), field3FREQ.flatten()]))
+    # frequency = np.sort(np.hstack([frequency_123.flatten(), field1FREQ.flatten(), field2FREQ.flatten(), field3FREQ.flatten()]))
+    frequency = np.sort(np.hstack([frequency_123.flatten()]))
     field1FREQ = np.ascontiguousarray(field1FREQ.flatten())
     field2FREQ = np.ascontiguousarray(field2FREQ.flatten())
     field3FREQ = np.ascontiguousarray(field3FREQ.flatten())
@@ -111,7 +117,7 @@ def plot_field_pol_params(system, SystemVars, rangeFREQ):
     omega2MOD = system.field2FREQ[:, np.newaxis]
     omega3MOD = system.field3FREQ[:, np.newaxis]
 
-    omegaCOMB = (SystemVars.freqDEL * np.linspace(range1 * SystemVars.combNUM, range2 * SystemVars.combNUM, 4 * SystemVars.combNUM, endpoint=False))[np.newaxis, :]
+    omegaCOMB = (SystemVars.freqDEL * np.linspace(range1 * SystemVars.combNUM, range2 * SystemVars.combNUM, 2 * SystemVars.combNUM, endpoint=False))[np.newaxis, :]
     # gaussian = np.exp(-(np.linspace(-SystemVars.combNUM, SystemVars.combNUM, 2 * SystemVars.combNUM)
     #                     + SystemVars.envelopeCENTER) ** 2 / (2. * SystemVars.envelopeWIDTH ** 2))[np.newaxis, :]
     field1 = (SystemVars.combGAMMA / (

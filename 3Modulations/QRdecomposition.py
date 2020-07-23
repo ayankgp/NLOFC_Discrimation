@@ -16,6 +16,7 @@ __affiliation__ = "Princeton University"
 from types import MethodType, FunctionType
 import numpy as np
 from FP_QRdiscrimination import ADict
+from functions import render_axis
 
 
 class QRD:
@@ -43,14 +44,17 @@ class QRD:
         self.resolutionNUM = params.resolutionNUM
         self.omegaM1 = params.omegaM1
         self.omegaM2 = params.omegaM2
+        self.omegaM3 = params.omegaM3
         self.combGAMMA = params.combGAMMA
         self.freqDEL = params.freqDEL
         self.termsNUM = params.termsNUM
         self.frequency = params.frequency
         self.field1FREQ = params.field1FREQ
         self.field2FREQ = params.field2FREQ
+        self.field3FREQ = params.field3FREQ
         self.field1 = params.field1 / params.field1.max()
         self.field2 = params.field2 / params.field2.max()
+        self.field3 = params.field3 / params.field3.max()
         self.round = params.round
         self.basisNUM_FB = params.basisNUM_FB
         self.basiswidth_FB = params.basiswidth_FB
@@ -70,55 +74,73 @@ class QRD:
         arrayBASIS_FB = np.linspace(self.rangeFREQ[0] * self.combNUM, self.rangeFREQ[1] * self.combNUM,
                                     self.basisNUM_FB, endpoint=False)[np.newaxis, :, np.newaxis] * self.freqDEL
         BASIS_bw = int((arrayBASIS_FB[0, 1, 0] - arrayBASIS_FB[0, 0, 0]) / self.freqDEL + 0.5)
-        arrayCOMB_FB1 = np.linspace(0., BASIS_bw, self.basiswidth_FB, endpoint=False)[np.newaxis,  np.newaxis, :] * self.freqDEL
-        arrayCOMB_FB2 = np.linspace(0., BASIS_bw, self.basiswidth_FB, endpoint=False)[np.newaxis,  np.newaxis, :] * self.freqDEL
+        print(BASIS_bw)
+        arrayCOMB_FB = np.linspace(0., BASIS_bw, self.basiswidth_FB, endpoint=False) * self.freqDEL
 
-        arrayFB1 = (arrayBASIS_FB + arrayCOMB_FB1)
-        arrayFB2 = (arrayBASIS_FB + arrayCOMB_FB2)
+        arrayFB = (arrayBASIS_FB + arrayCOMB_FB[np.newaxis,  np.newaxis, :])
 
-        freq2basisMATRIX = self.combGAMMA / ((arrayFREQ_FB - self.omegaM2 * 2 + self.omegaM1 - arrayFB1) ** 2 + self.combGAMMA ** 2) \
-                             + self.combGAMMA / ((arrayFREQ_FB - self.omegaM1 * 2 + self.omegaM2 - arrayFB2) ** 2 + self.combGAMMA ** 2)
+        # self.freq2basisMATRIX = self.combGAMMA / ((arrayFREQ_FB - self.omegaM2 * 2 + self.omegaM1 - arrayFB1) ** 2 + self.combGAMMA ** 2) \
+        #                    + self.combGAMMA / ((arrayFREQ_FB - self.omegaM1 * 2 + self.omegaM2 - arrayFB2) ** 2 + self.combGAMMA ** 2)
+        self.freq2basisMATRIX = self.combGAMMA / ((arrayFREQ_FB - self.omegaM1 - self.omegaM2 + self.omegaM3 - arrayFB) ** 2 + self.combGAMMA ** 2)
 
-        colors = ['r', 'b', 'k']
-        freq2basisMATRIX = freq2basisMATRIX.sum(axis=2)
+        self.freq2basisMATRIX = self.freq2basisMATRIX.sum(axis=2)
         plt.figure()
-        plt.plot(freq2basisMATRIX)
+        plt.plot(self.freq2basisMATRIX)
 
-        self.pol3basisMATRIX = self.pol3_EMPTY.dot(freq2basisMATRIX)
+        self.pol3basisMATRIX = self.pol3_EMPTY.dot(self.freq2basisMATRIX)
 
-
-        fig, ax = plt.subplots(nrows=3, ncols=2)
-        for i in range(3):
-            ax[i, 0].plot(self.pol3_EMPTY[i].real, color=colors[i])
-            ax[i, 1].plot(self.pol3_EMPTY[i].imag, color=colors[i])
+        # fig, ax = plt.subplots(nrows=3, ncols=2)
+        # for i in range(3):
+        #     ax[i, 0].plot(self.pol3_EMPTY[i].real, color=colors[i])
+        #     ax[i, 1].plot(self.pol3_EMPTY[i].imag, color=colors[i])
         return
 
     def calculate_heterodyne(self):
         np.set_printoptions(precision=3, suppress=True)
-        Q_mat = np.empty((self.molNUM, self.basisNUM_FB, self.basisNUM_FB), dtype=np.complex)
-        heterodyne = np.empty((self.molNUM, self.basisNUM_FB), dtype=np.complex)
-        R_mat = np.empty((self.molNUM, self.basisNUM_FB, self.molNUM - 1), dtype=np.complex)
+        Q_mat = np.empty((self.molNUM, self.basisNUM_FB, self.basisNUM_FB))
+        heterodyne_real = np.empty((self.molNUM, self.basisNUM_FB))
+        heterodyne_imag = np.empty((self.molNUM, self.basisNUM_FB))
+        R_mat = np.empty((self.molNUM, self.basisNUM_FB, self.molNUM - 1))
         ImatBASIS = np.empty((self.molNUM, self.molNUM), dtype=np.complex)
         ImatFREQ = np.empty((self.molNUM, self.molNUM), dtype=np.complex)
 
         basisAXIS = np.arange(self.basisNUM_FB)
-        envelopeBASIS = (np.exp(-(basisAXIS - 0.5 * self.basisNUM_FB)**2 / (2 * (self.basisNUM_FB * 2) ** 2)))
+        envelopeBASIS = (np.exp(-(basisAXIS - 0.5 * self.basisNUM_FB)**2 / (2 * (self.basisNUM_FB * 0.2) ** 2)))
 
         for molINDX in range(self.molNUM):
-            Q_mat[molINDX], R_mat[molINDX] = np.linalg.qr(np.delete(self.pol3basisMATRIX.T, molINDX, 1), mode='complete')
-            heterodyne[molINDX] = sum(q * np.vdot(q, envelopeBASIS) for q in Q_mat[molINDX, :, self.molNUM - 1:].T)
+            Q_mat[molINDX], R_mat[molINDX] = np.linalg.qr(np.delete(self.pol3basisMATRIX.real.T, molINDX, 1), mode='complete')
+            heterodyne_real[molINDX] = sum(q * np.vdot(q, envelopeBASIS) for q in Q_mat[molINDX, :, self.molNUM - 1:].T)
+            Q_mat[molINDX], R_mat[molINDX] = np.linalg.qr(np.delete(self.pol3basisMATRIX.imag.T, molINDX, 1), mode='complete')
+            heterodyne_imag[molINDX] = sum(q * np.vdot(q, envelopeBASIS) for q in Q_mat[molINDX, :, self.molNUM - 1:].T)
+            # for j in range(self.molNUM):
+            #     ImatBASIS[molINDX, j] = np.vdot(heterodyne[molINDX], self.pol3basisMATRIX[j])
+            #     ImatFREQ[molINDX, j] = np.vdot(heterodyne[molINDX].dot(self.freq2basisMATRIX.T), self.pol3_EMPTY[j])
 
-            for j in range(self.molNUM):
-                ImatBASIS[molINDX, j] = np.vdot(heterodyne[molINDX], self.pol3basisMATRIX[j])
-                ImatFREQ[molINDX, j] = np.vdot(heterodyne[molINDX].dot(self.freq2basisMATRIX), self.pol3_EMPTY[j])
 
+        # fig2, axes2 = plt.subplots(nrows=2, ncols=1, sharex=True)
+        # for molINDX in range(self.molNUM):
+        #     axes2[0].plot(heterodyne_real[molINDX], '-')
+        #     axes2[1].plot(heterodyne_imag[molINDX], '-')
 
-        fig2, axes2 = plt.subplots(nrows=2, ncols=1, sharex=True)
-        for molINDX in range(self.molNUM):
-            axes2[0].plot(heterodyne[molINDX].real, '-')
-            axes2[1].plot(heterodyne[molINDX].imag, '-')
+        colors = ['r', 'b', 'k']
+        shaped_het_real = heterodyne_real.dot(self.freq2basisMATRIX.T)
+        shaped_het_imag = heterodyne_imag.dot(self.freq2basisMATRIX.T)
+        fig, ax = plt.subplots(nrows=3, ncols=2, sharey=True, figsize=(11, 11))
+        for i in range(molNUM):
+            ax[i][0].plot(self.frequency / self.freqDEL, shaped_het_real[i] / shaped_het_real.max(), colors[i])
+            ax[i][1].plot(self.frequency / self.freqDEL, shaped_het_imag[i] / shaped_het_imag.max(), colors[i])
+            ax[i][0].set_ylabel("$Re[E_{het}(\omega)]$ -- Mol " + str(i + 1), fontsize='x-large')
+            ax[i][1].set_ylabel("$Im[E_{het}(\omega)]$ -- Mol " + str(i + 1), fontsize='x-large')
+            # ax[i][0].set_xlim(2125, 2155)
+            # ax[i][1].set_xlim(2125, 2155)
 
-        print(heterodyne.T)
+            render_axis(ax[i][0], rotation=30)
+            render_axis(ax[i][1], rotation=30)
+        for j in range(molNUM - 1):
+            ax[j][0].get_xaxis().set_ticks([])
+            ax[j][1].get_xaxis().set_ticks([])
+        ax[2][0].set_xlabel("Frequency (in THz)", fontsize='x-large')
+        ax[2][1].set_xlabel("Frequency (in Thz)", fontsize='x-large')
 
         return
 
@@ -137,10 +159,12 @@ if __name__ == '__main__':
     polarizationTOTALFIELD = data['pol3field']
     field1FREQ = data['field1FREQ']
     field2FREQ = data['field2FREQ']
+    field3FREQ = data['field3FREQ']
     frequency = data['frequency']
     freqNUM = frequency.size
     field1 = data['field1']
     field2 = data['field2']
+    field3 = data['field3']
 
     with open('pol3_args.pickle', 'rb') as f_args:
         data = pickle.load(f_args)
@@ -149,6 +173,7 @@ if __name__ == '__main__':
     resolutionNUM = data['resolutionNUM']
     omegaM1 = data['omegaM1']
     omegaM2 = data['omegaM2']
+    omegaM3 = data['omegaM3']
     freqDEL = data['freqDEL']
     combGAMMA = data['combGAMMA']
     termsNUM = data['termsNUM']
@@ -156,7 +181,7 @@ if __name__ == '__main__':
     envelopeCENTER = data['envelopeCENTER']
     chiNUM = data['chiNUM']
     rangeFREQ = data['rangeFREQ']
-    basisNUM_FB = 50
+    basisNUM_FB = 25
 
     SystemVars = ADict(
         molNUM=molNUM,
@@ -165,14 +190,17 @@ if __name__ == '__main__':
         resolutionNUM=resolutionNUM,
         omegaM1=omegaM1,
         omegaM2=omegaM2,
+        omegaM3=omegaM3,
         combGAMMA=combGAMMA,
         freqDEL=freqDEL,
         termsNUM=termsNUM,
         frequency=frequency,
         field1FREQ=field1FREQ,
         field2FREQ=field2FREQ,
+        field3FREQ=field3FREQ,
         field1=field1,
         field2=field2,
+        field3=field3,
         round=1,
         basisNUM_FB=basisNUM_FB,
         basiswidth_FB=int(combNUM/basisNUM_FB),

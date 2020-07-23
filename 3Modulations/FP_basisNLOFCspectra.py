@@ -401,19 +401,19 @@ if __name__ == '__main__':
     #              OFC PARAMETERS                #
     # -------------------------------------------#
 
-    combNUM = 4000
+    combNUM = 5000
     resolutionNUM = 3
-    omegaM1 = 0.59 * timeFACTOR
-    omegaM2 = 0.83 * timeFACTOR
-    omegaM3 = 0.42 * timeFACTOR
-    freqDEL = 1.10 * timeFACTOR
+    omegaM1 = 0.59 * timeFACTOR * 1.05
+    omegaM2 = 0.83 * timeFACTOR * 1.05
+    omegaM3 = 0.32 * timeFACTOR * 1.05
+    freqDEL = 1.10 * timeFACTOR * 1.05
     combGAMMA = 1e-10 * timeFACTOR
     termsNUM = 3
     envelopeWIDTH = 100000
     envelopeCENTER = 0
     chiNUM = 10000
 
-    rangeFREQ = np.asarray([-1., 1.])
+    rangeFREQ = np.asarray([-1., 1.4])
 
     SystemArgs = dict(
         gammaMATRIXpopd=gammaMATRIXpopd,
@@ -465,12 +465,15 @@ if __name__ == '__main__':
     # ---------------------------------------------------------------------------------------------------------------- #
     #                  MONTE-CARLO DETERMINATION OF CHI(1) AND CHI(3) CORRELATIONS BETWEEN MOLECULES                   #
     # ---------------------------------------------------------------------------------------------------------------- #
-    if False:
+    if True:
         system = OFC(SystemVars, **SystemArgs)
         system.calculate_susceptibilities(SystemVars)
         fig, ax = plt.subplots(nrows=1, ncols=1)
+
         ax.plot(energyFACTOR * wavelength2freqFACTOR / system.omega_chi, np.asarray([np.abs(system.probabilities[i].T.dot(system.chi1DIST[i]))
                                                                                      for i in range(molNUM)]).real.T, linestyle='-.')
+        # ax.set_xlim(600, 800)
+        render_axis(ax, labelSIZE='xx-large')
         for i in range(3):
             system.chi3DIST[i] *= MU[i] * MU[i] * MUvibr[i] * MUvibr[i]
         np.set_printoptions(precision=3)
@@ -482,8 +485,8 @@ if __name__ == '__main__':
         del system
 
     start = time.time()
-    omegaM1array = np.asarray([0.64]) * timeFACTOR
-    omegaM2array = np.asarray([0.75]) * timeFACTOR
+    omegaM1array = np.asarray([omegaM1 / timeFACTOR]) * timeFACTOR
+    omegaM2array = np.asarray([omegaM2 / timeFACTOR]) * timeFACTOR
 
     for i in range(len(omegaM1array)):
         for j in range(len(omegaM2array)):
