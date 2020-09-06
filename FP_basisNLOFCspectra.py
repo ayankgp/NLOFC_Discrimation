@@ -166,7 +166,7 @@ class OFC:
         ofc_molecule.energies = self.energies[indices].ctypes.data_as(POINTER(c_double))
         ofc_molecule.levelsVIBR = self.levelsVIBR[indices].ctypes.data_as(POINTER(c_double))
         ofc_molecule.levels = self.levels[indices].ctypes.data_as(POINTER(c_double))
-        ofc_molecule.gammaMATRIX = np.ascontiguousarray(self.gammaMATRIX).ctypes.data_as(POINTER(c_double))
+        ofc_molecule.gammaMATRIX = np.ascontiguousarray(self.gammaMATRIX[indices]).ctypes.data_as(POINTER(c_double))
         ofc_molecule.muMATRIX = self.muMATRIX[indices].ctypes.data_as(POINTER(c_complex))
         ofc_molecule.polarizationINDEX = self.polarizationINDEX[indices].ctypes.data_as(POINTER(c_complex))
         ofc_molecule.polarizationMOLECULE = self.polarizationMOLECULE[indices].ctypes.data_as(POINTER(c_complex))
@@ -302,10 +302,14 @@ if __name__ == '__main__':
     # ------------------ MOLECULAR ENERGY LEVEL STRUCTURE ------------------ #
 
     energies = np.empty((molNUM, levelsNUM))
-    levelMIN = [555, 575, 595, 615, 635]
-    levelMAX = [725, 735, 745, 755, 765]
-    wavelengthMIN = [539, 551, 551, 551, 551]
-    wavelengthMAX = [772, 819, 799, 799, 799]
+    # levelMIN = [555, 575, 595, 615, 635]
+    # levelMAX = [725, 735, 745, 755, 765]
+    # wavelengthMIN = [539, 551, 551, 551, 551]
+    # wavelengthMAX = [772, 819, 799, 799, 799]
+    levelMIN = [555, 558, 558]
+    levelMAX = [725, 735, 785]
+    wavelengthMIN = [539, 551, 551]
+    wavelengthMAX = [772, 819, 799]
     levels = [
         np.asarray(wavelength2freqFACTOR * energyFACTOR / np.linspace(levelMIN[i], levelMAX[i], excitedNUM * ensembleNUM)[::-1])
         for i in range(molNUM)
@@ -321,12 +325,20 @@ if __name__ == '__main__':
 
     # ------------------ TRANSITION DIPOLE MOMENT AND DECAY PARAMETERS ------------------ #
 
-    MU = [2.2, 2.1, 2.15, 2.1, 2.25]
-    MUvibr = [0.12, 0.11, 0.10, 0.13, 0.09]
+    # MU = [2.2, 2.1, 2.15, 2.1, 2.25]
+    # MUvibr = [0.12, 0.11, 0.10, 0.13, 0.09]
+    #
+    # gammaPOPD = [2.418884e-8, 2.518884e-8, 2.618884e-8, 2.718884e-8, 2.818884e-8]
+    # gammaVIBR = [1.e-6, 1.2e-6, 1.5e-6, 1.15e-6, 1.45e-6]
+    # gammaELEC = [2.1 * 2.518884e-4, 2.25 * 2.518884e-4, 2.4 * 2.618884e-4, 2.3 * 2.518884e-4, 2.15 * 2.618884e-4]
 
-    gammaPOPD = [2.418884e-8, 2.518884e-8, 2.618884e-8, 2.718884e-8, 2.818884e-8]
-    gammaVIBR = [1.e-6, 1.2e-6, 1.5e-6, 1.15e-6, 1.45e-6]
-    gammaELEC = [2.1 * 2.518884e-4, 2.25 * 2.518884e-4, 2.4 * 2.618884e-4, 2.3 * 2.518884e-4, 2.15 * 2.618884e-4]
+    MU = [2., 2., 2.]
+    MUvibr = [0.5, 0.5, 0.5]
+
+    gammaPOPD = [2.418884e-8, 2.518884e-8, 2.618884e-8]
+    gammaVIBR = [2.418884e-6, 2.518884e-6, 2.618884e-6]
+    gammaELEC = [0.5 * 2.418884e-4, 2.518884e-4, 2.218884e-4]
+
     muMATRIX = [MUvibr[i] * np.ones((levelsNUM, levelsNUM), dtype=np.complex) for i in range(molNUM)]
     [np.fill_diagonal(muMATRIX[i], 0j) for i in range(molNUM)]
     for i in range(molNUM):
@@ -360,23 +372,43 @@ if __name__ == '__main__':
     # ------------------ SPECTRA FITTING PROBABILITIES  ------------------ #
 
     probabilities = np.empty((molNUM, ensembleNUM))
-    probabilities[0] = np.asarray(
-        [0.0118298, 0.0720250, 0.1321300, 0.2457230, 0.3622290, 0.6249910, 0.9031510, 0.9662930, 0.9996000, 0.9999550,
-          0.9999910, 0.9982230, 0.9798070, 0.8255240, 0.7010270, 0.6480470, 0.6335650, 0.5958800, 0.5436750, 0.5033890,
-          0.4499950, 0.4540130, 0.3828920, 0.3446280, 0.3148250, 0.2910750, 0.2724920, 0.2350670, 0.1673730, 0.1316270,
-          0.1646670, 0.1737700, 0.1258730, 0.0889188, 0.0899126, 0.0872398, 0.0561983, 0.0698249, 0.0540158, 0.0505829,
-          0.0502181, 0.0496727, 0.0405529, 0.0559383]
+    # probabilities[0] = np.asarray(
+    #     [0.0118298, 0.0720250, 0.1321300, 0.2457230, 0.3622290, 0.6249910, 0.9031510, 0.9662930, 0.9996000, 0.9999550,
+    #       0.9999910, 0.9982230, 0.9798070, 0.8255240, 0.7010270, 0.6480470, 0.6335650, 0.5958800, 0.5436750, 0.5033890,
+    #       0.4499950, 0.4540130, 0.3828920, 0.3446280, 0.3148250, 0.2910750, 0.2724920, 0.2350670, 0.1673730, 0.1316270,
+    #       0.1646670, 0.1737700, 0.1258730, 0.0889188, 0.0899126, 0.0872398, 0.0561983, 0.0698249, 0.0540158, 0.0505829,
+    #       0.0502181, 0.0496727, 0.0405529, 0.0559383]
+    # )
+
+    probabilities = np.asarray(
+        [
+            [0.0559383, 0.0405529, 0.0496727, 0.0502181, 0.0505829, 0.0540158, 0.0698249, 0.0561983, 0.0872398,
+             0.0899126, 0.0889188, 0.125873, 0.17377, 0.164667, 0.131627, 0.167373, 0.235067, 0.272492, 0.291075,
+             0.314825, 0.344628, 0.382892, 0.454013, 0.449995, 0.503389, 0.543675, 0.59588, 0.633565, 0.648047,
+             0.701027, 0.825524, 0.979807, 0.998223, 0.999991, 0.999955, 0.9996, 0.966293, 0.903151, 0.624991,
+             0.362229, 0.245723, 0.13213, 0.072025, 0.0118298],
+            [0.0293968, 0.0338536, 0.0383105, 0.040928, 0.0434535, 0.0481712, 0.0634281, 0.0460764, 0.079831, 0.057043,
+             0.0757835, 0.0893302, 0.10581, 0.126468, 0.148797, 0.16973, 0.189966, 0.222053, 0.261433, 0.292574,
+             0.317536, 0.355447, 0.405128, 0.456216, 0.50885, 0.559217, 0.606564, 0.660551, 0.72533, 0.802389, 0.976003,
+             0.994937, 0.997694, 0.997776, 0.989299, 0.909013, 0.800151, 0.680393, 0.495251, 0.319516, 0.233149,
+             0.147702, 0.0806267, 0.0135515],
+            [0.00679299, 0.00727662, 0.0130347, 0.0137522, 0.0143939, 0.0188319, 0.023665, 0.0301884, 0.0370206,
+             0.0362768, 0.0337105, 0.048696, 0.0690665, 0.0735955, 0.071801, 0.0826089, 0.0996923, 0.118934, 0.139534,
+             0.152036, 0.19888, 0.219307, 0.250201, 0.279543, 0.303425, 0.333486, 0.361688, 0.432412, 0.449959,
+             0.516771, 0.59716, 0.687907, 0.955484, 0.972082, 0.906222, 0.882957, 0.667665, 0.457709, 0.265371,
+             0.0926473, 0.0708056, 0.0489661, 0.0277671, 0.00653886]
+        ]
     )
 
     # poly = np.polyfit(np.arange(ensembleNUM), probabilities[0], 5)
     # probabilities[0] = np.poly1d(poly)(np.arange(ensembleNUM))
     #
-    for i in range(molNUM):
-        probabilities[i] = probabilities[0] / (1.05 ** i)
-
-    for i in range(len(probabilities[0])):
-        for k in range(molNUM):
-            probabilities[k][i] *= np.random.normal(1, .025)
+    # for i in range(molNUM):
+    #     probabilities[i] = probabilities[0] / (1.05 ** i)
+    #
+    # for i in range(len(probabilities[0])):
+    #     for k in range(molNUM):
+    #         probabilities[k][i] *= np.random.normal(1, .025)
 
     guessLOWER = np.zeros(ensembleNUM)
     guessUPPER = np.ones(ensembleNUM)
@@ -409,7 +441,7 @@ if __name__ == '__main__':
     termsNUM = 3
     envelopeWIDTH = 100000
     envelopeCENTER = 0
-    chiNUM = 50000
+    chiNUM = 10000
 
     rangeFREQ = np.asarray([-1., 1.4])
 
@@ -434,7 +466,7 @@ if __name__ == '__main__':
         ensembleNUM=ensembleNUM,
         threadNUM=cpu_count(),
         rho_0=rho_0,
-        spectra_timeAMP=5000,
+        spectra_timeAMP=8000,
         spectra_timeDIM=1000,
         spectra_fieldAMP=8e-6,
         guessLOWER=guessLOWER,
@@ -459,85 +491,112 @@ if __name__ == '__main__':
 
     start = time.time()
 
+    # system = Spectra(SystemVars, **SystemArgs)
+    # system.fit_spectra(SystemVars)
+    #
+    # print('TIME ELAPSED FOR SPECTRA CALCULATION:', time.time() - start, 'seconds')
+
+    # ----------------------------------------------------------------------------------------------------------------#
+    #                                             PLOT ABSORPTION SPECTRA FIT                                         #
+    # ----------------------------------------------------------------------------------------------------------------#
+
+    fig, ax = plt.subplots(nrows=molNUM, ncols=1, figsize=(6, 6), sharex=True)
+    for i in range(molNUM):
+        ax[i].plot(wavelengths[i], absorptions[i], protein_plot_colors[i], label=data_protein_files_list[i][7:-4]+" spectra")
+    #     ax[i].plot(system.spectra_wavelengths[i], system.spectra_absTOTAL[i], protein_plot_colors[i], linestyle='--', label="theoretical fit")
+
+    start = time.time()
+
     # ---------------------------------------------------------------------------------------------------------------- #
     #                  MONTE-CARLO DETERMINATION OF CHI(1) AND CHI(3) CORRELATIONS BETWEEN MOLECULES                   #
     # ---------------------------------------------------------------------------------------------------------------- #
-    if False:
+    if True:
         system = OFC(SystemVars, **SystemArgs)
         system.calculate_susceptibilities(SystemVars)
-        fig, ax = plt.subplots(nrows=1, ncols=1)
-        ax.plot(energyFACTOR * wavelength2freqFACTOR / system.omega_chi, np.asarray([np.abs(system.probabilities[i].T.dot(system.chi1DIST[i]))
-                                                                                     for i in range(molNUM)]).real.T, linestyle='-.')
-        for i in range(3):
-            system.chi3DIST[i] *= MU[i] * MU[i] * MUvibr[i] * MUvibr[i]
-        np.set_printoptions(precision=3)
+        # fig, ax = plt.subplots(nrows=1, ncols=1)
         for i in range(molNUM):
-            print(system.gammaMATRIX[i], '\n \n')
-        print(np.corrcoef(np.asarray([np.abs(system.probabilities[i].T.dot(system.chi1DIST[i])) for i in range(molNUM)])), '\n \n')
-        print(np.corrcoef(np.asarray([np.abs(system.probabilities[i].T.dot(system.chi3DIST[i])) for i in range(molNUM)])), '\n \n')
+            abs_i = (system.probabilities[i][:ensembleNUM].T.dot(system.chi1DIST[i])).imag
+            abs_i /= abs_i.max() / 100.
+            ax[i].plot(energyFACTOR * wavelength2freqFACTOR / system.omega_chi, abs_i, protein_plot_colors[i], linestyle='-.', label="Chi_1 fit")
+            ax[i].set_xlim(system.spectra_wavelengths[i].min(), system.spectra_wavelengths[i].max())
+            render_axis(ax[i], gridLINE='-')
+            ax[i].legend()
+            ax[i].set_ylabel('Normalised \n absorption', fontsize='x-large')
+
+        plt.subplots_adjust(left=0.2, bottom=None, right=None, top=None, wspace=None, hspace=0.0)
+        ax[molNUM - 1].set_xlabel('Wavelength (in $nm$)', fontsize='x-large')
+
+        # for i in range(3):
+        #     system.chi3DIST[i] *= MU[i] * MU[i] * MUvibr[i] * MUvibr[i]
+        # np.set_printoptions(precision=3)
+        # for i in range(molNUM):
+        #     print(system.gammaMATRIX[i], '\n \n')
+        # print(np.corrcoef(np.asarray([np.abs(system.probabilities[i].T.dot(system.chi1DIST[i])) for i in range(molNUM)])), '\n \n')
+        # print(np.corrcoef(np.asarray([np.abs(system.probabilities[i].T.dot(system.chi3DIST[i])) for i in range(molNUM)])), '\n \n')
         print(time.time() - start)
+        plt.show()
         del system
 
-    start = time.time()
-    freqDELarray = np.asarray([1.1]) * timeFACTOR * 1e0
-
-    system = OFC(SystemVars, **SystemArgs)
-    print((system.frequency - 2 * SystemVars.omegaM2 + SystemVars.omegaM1) / SystemVars.freqDEL)
-    system.calculate_ofc_system(SystemVars)
-
-    fig_pol3, ax_pol3 = plt.subplots(nrows=molNUM, ncols=2, sharex=True)
-    fig_pol3.suptitle(f"{freqDELarray[0] / timeFACTOR}")
-    field1, field2 = plot_field_pol_params(system, SystemVars)
-
-    print(time.time() - start)
-
-    for molINDX in range(molNUM):
-        system.polarizationTOTALEMPTY[molINDX] *= MU[molINDX]*MU[molINDX]*MUvibr[molINDX]*MUvibr[molINDX]
-        system.polarizationTOTALFIELD[molINDX] *= MU[molINDX]*MU[molINDX]*MUvibr[molINDX]*MUvibr[molINDX]
-
-    polMAX = [max(np.abs(system.polarizationTOTALEMPTY[_]).max(), np.abs(system.polarizationTOTALFIELD[_]).max()) for _ in range(molNUM)]
-
-    if molNUM > 1:
-        for molINDX in range(molNUM):
-            ax_pol3[molINDX, 0].plot(system.field1FREQ / (timeFACTOR * 2 * np.pi), field1 * polMAX[molINDX] / field1.max(), 'm', alpha=0.4)
-            ax_pol3[molINDX, 0].plot(system.field2FREQ / (timeFACTOR * 2 * np.pi), field2 * polMAX[molINDX] / field1.max(), 'g', alpha=0.4)
-            ax_pol3[molINDX, 1].plot(system.field1FREQ / (timeFACTOR * 2 * np.pi), field1 * polMAX[molINDX] / field1.max(), 'm', alpha=0.4)
-            ax_pol3[molINDX, 1].plot(system.field2FREQ / (timeFACTOR * 2 * np.pi), field2 * polMAX[molINDX] / field1.max(), 'g', alpha=0.4)
-            ax_pol3[molINDX, 0].plot(system.frequency / (timeFACTOR * 2 * np.pi), system.polarizationTOTALEMPTY[molINDX].real, 'r', linewidth=1., alpha=0.7)
-            ax_pol3[molINDX, 0].plot(system.frequency / (timeFACTOR * 2 * np.pi), system.polarizationTOTALFIELD[molINDX].real, 'b', linewidth=1., alpha=0.7)
-            ax_pol3[molINDX, 1].plot(system.frequency / (timeFACTOR * 2 * np.pi), system.polarizationTOTALEMPTY[molINDX].imag, 'r', linewidth=1., alpha=0.7)
-            ax_pol3[molINDX, 1].plot(system.frequency / (timeFACTOR * 2 * np.pi), system.polarizationTOTALFIELD[molINDX].imag, 'b', linewidth=1., alpha=0.7)
-    else:
-        ax_pol3[0].plot(system.frequency / (timeFACTOR * 2 * np.pi), system.polarizationTOTALEMPTY[0].real, 'r', linewidth=1., alpha=0.7)
-        ax_pol3[1].plot(system.frequency / (timeFACTOR * 2 * np.pi), system.polarizationTOTALEMPTY[0].imag, 'b', linewidth=1., alpha=0.7)
-
-    with open('pol3.pickle', 'wb') as f:
-        pickle.dump(
-            {
-                "pol3field": system.polarizationTOTALFIELD,
-                "pol3empty": system.polarizationTOTALEMPTY,
-                "field1FREQ": system.field1FREQ,
-                "field2FREQ": system.field2FREQ,
-                "frequency": system.frequency,
-                "field1": field1,
-                "field2": field2
-            },
-            f)
-
-    with open('pol3_args.pickle', 'wb') as f:
-        pickle.dump(
-            {
-                "combNUM": combNUM,
-                "resolutionNUM": resolutionNUM,
-                "omegaM1": omegaM1,
-                "omegaM2": omegaM2,
-                "freqDEL": freqDEL,
-                "combGAMMA": combGAMMA,
-                "termsNUM": termsNUM,
-                "envelopeWIDTH": envelopeWIDTH,
-                "envelopeCENTER": envelopeCENTER,
-                "chiNUM": chiNUM,
-                "rangeFREQ": rangeFREQ
-            },
-            f)
+    # start = time.time()
+    # freqDELarray = np.asarray([freqDEL / timeFACTOR]) * timeFACTOR
+    #
+    # system = OFC(SystemVars, **SystemArgs)
+    # print((system.frequency - 2 * SystemVars.omegaM2 + SystemVars.omegaM1) / SystemVars.freqDEL)
+    # system.calculate_ofc_system(SystemVars)
+    #
+    # fig_pol3, ax_pol3 = plt.subplots(nrows=molNUM, ncols=2, sharex=True)
+    # fig_pol3.suptitle(f"{freqDELarray[0] / timeFACTOR}")
+    # field1, field2 = plot_field_pol_params(system, SystemVars)
+    #
+    # print(time.time() - start)
+    #
+    # for molINDX in range(molNUM):
+    #     system.polarizationTOTALEMPTY[molINDX] *= MU[molINDX]*MU[molINDX]*MUvibr[molINDX]*MUvibr[molINDX]
+    #     system.polarizationTOTALFIELD[molINDX] *= MU[molINDX]*MU[molINDX]*MUvibr[molINDX]*MUvibr[molINDX]
+    #
+    # polMAX = [max(np.abs(system.polarizationTOTALEMPTY[_]).max(), np.abs(system.polarizationTOTALFIELD[_]).max()) for _ in range(molNUM)]
+    #
+    # if molNUM > 1:
+    #     for molINDX in range(molNUM):
+    #         ax_pol3[molINDX, 0].plot(system.field1FREQ / (timeFACTOR * 2 * np.pi), field1 * polMAX[molINDX] / field1.max(), 'm', alpha=0.4)
+    #         ax_pol3[molINDX, 0].plot(system.field2FREQ / (timeFACTOR * 2 * np.pi), field2 * polMAX[molINDX] / field1.max(), 'g', alpha=0.4)
+    #         ax_pol3[molINDX, 1].plot(system.field1FREQ / (timeFACTOR * 2 * np.pi), field1 * polMAX[molINDX] / field1.max(), 'm', alpha=0.4)
+    #         ax_pol3[molINDX, 1].plot(system.field2FREQ / (timeFACTOR * 2 * np.pi), field2 * polMAX[molINDX] / field1.max(), 'g', alpha=0.4)
+    #         ax_pol3[molINDX, 0].plot(system.frequency / (timeFACTOR * 2 * np.pi), system.polarizationTOTALEMPTY[molINDX].real, 'r', linewidth=1., alpha=0.7)
+    #         ax_pol3[molINDX, 0].plot(system.frequency / (timeFACTOR * 2 * np.pi), system.polarizationTOTALFIELD[molINDX].real, 'b', linewidth=1., alpha=0.7)
+    #         ax_pol3[molINDX, 1].plot(system.frequency / (timeFACTOR * 2 * np.pi), system.polarizationTOTALEMPTY[molINDX].imag, 'r', linewidth=1., alpha=0.7)
+    #         ax_pol3[molINDX, 1].plot(system.frequency / (timeFACTOR * 2 * np.pi), system.polarizationTOTALFIELD[molINDX].imag, 'b', linewidth=1., alpha=0.7)
+    # else:
+    #     ax_pol3[0].plot(system.frequency / (timeFACTOR * 2 * np.pi), system.polarizationTOTALEMPTY[0].real, 'r', linewidth=1., alpha=0.7)
+    #     ax_pol3[1].plot(system.frequency / (timeFACTOR * 2 * np.pi), system.polarizationTOTALEMPTY[0].imag, 'b', linewidth=1., alpha=0.7)
+    #
+    # with open('Pickle/pol3.pickle', 'wb') as f:
+    #     pickle.dump(
+    #         {
+    #             "pol3field": system.polarizationTOTALFIELD,
+    #             "pol3empty": system.polarizationTOTALEMPTY,
+    #             "field1FREQ": system.field1FREQ,
+    #             "field2FREQ": system.field2FREQ,
+    #             "frequency": system.frequency,
+    #             "field1": field1,
+    #             "field2": field2
+    #         },
+    #         f)
+    #
+    # with open('Pickle/pol3_args.pickle', 'wb') as f:
+    #     pickle.dump(
+    #         {
+    #             "combNUM": combNUM,
+    #             "resolutionNUM": resolutionNUM,
+    #             "omegaM1": omegaM1,
+    #             "omegaM2": omegaM2,
+    #             "freqDEL": freqDEL,
+    #             "combGAMMA": combGAMMA,
+    #             "termsNUM": termsNUM,
+    #             "envelopeWIDTH": envelopeWIDTH,
+    #             "envelopeCENTER": envelopeCENTER,
+    #             "chiNUM": chiNUM,
+    #             "rangeFREQ": rangeFREQ
+    #         },
+    #         f)
     plt.show()

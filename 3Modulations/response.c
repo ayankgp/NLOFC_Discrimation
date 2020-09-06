@@ -375,7 +375,6 @@ void CalculateOFCResponse_C(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
     //      UPDATING THE PURE DEPHASING MATRIX & ENERGIES FOR MOLECULE        //
     // ---------------------------------------------------------------------- //
 
-
     int vibrNUM = ofc_mol->levelsNUM - ofc_params->excitedNUM;
     ofc_molecule** ensemble = (ofc_molecule**)malloc(ofc_params->ensembleNUM * sizeof(ofc_molecule*));
     for(int i=0; i<ofc_params->ensembleNUM; i++)
@@ -436,6 +435,7 @@ void CalculateChi_C(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
     //                   CREATING THE ENSEMBLE OF MOLECULES                   //
     // ---------------------------------------------------------------------- //
 
+
     for(int j=0; j<ofc_params->ensembleNUM; j++)
     {
         Chi1(ensemble[j], ofc_params);
@@ -445,7 +445,6 @@ void CalculateChi_C(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
             ofc_mol->chi1DIST[j * ofc_params->chiNUM + i] = ensemble[j]->chi1INDEX[i];
             ofc_mol->chi3DIST[j * ofc_params->chiNUM + i] = ensemble[j]->chi3INDEX[i];
         }
-//        print_double_mat(ofc_mol->gammaMATRIX, ofc_params->levelsNUM, ofc_params->levelsNUM);
         free_ofc_molecule(ensemble[j]);
     }
 }

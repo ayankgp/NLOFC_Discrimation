@@ -29,6 +29,51 @@
 
 void pol3(ofc_molecule* ofc_mol, ofc_parameters* ofc_params, const cmplx wg_c, const cmplx wg_b, const cmplx wg_a, const int sign)
 {
+    double freqDEL = ofc_params->freqDEL;
+    int termsNUM = ofc_params->termsNUM;
+    double combGAMMA = ofc_params->combGAMMA;
+
+    double omegaM_k = ofc_params->modulations[0];
+    double omegaM_j = ofc_params->modulations[1];
+    double omegaM_i = ofc_params->modulations[2];
+
+    int m_k_0 = ceil((- omegaM_k - crealf(wg_a))/freqDEL);
+    int m_j_0 = ceil((- omegaM_k - omegaM_j - crealf(wg_b) )/freqDEL) - m_k_0;
+
+    for(int out_i = 0; out_i < ofc_params->freqNUM; out_i++)
+    {
+        const double omega = ofc_params->frequency[out_i];
+        int m_i_0 = m_k_0 + m_j_0 - ceil((omega - omegaM_k - omegaM_j + omegaM_i)/freqDEL);
+        cmplx result = 0. + 0. * I;
+        for(int m_i = m_i_0 - termsNUM; m_i < m_i_0 + termsNUM; m_i++)
+        {
+            double c_i = exp(-pow(m_i + ofc_params->envelopeCENTER, 2) / (2. * powf(ofc_params->envelopeWIDTH, 2.)));
+            const cmplx term_A = omega + omegaM_i + m_i * freqDEL + wg_b + combGAMMA * I;
+            for(int m_j = m_j_0 - termsNUM; m_j < m_j_0 + termsNUM; m_j++)
+            {
+                double c_j = exp(-pow(m_j + ofc_params->envelopeCENTER, 2) / (2. * powf(ofc_params->envelopeWIDTH, 2.)));
+                const cmplx term_D = omega + omegaM_i - omegaM_j + (m_i - m_j) * freqDEL + wg_a + 2 * I * combGAMMA;
+                for(int m_k = m_k_0 - termsNUM; m_k < m_k_0 + termsNUM; m_k++)
+                {
+                    double c_k = exp(-pow(m_k + ofc_params->envelopeCENTER, 2) / (2. * powf(ofc_params->envelopeWIDTH, 2.)));
+                    const cmplx term_B = omegaM_k + m_k * freqDEL + wg_a + combGAMMA * I;
+                    const cmplx term_C = omegaM_k + omegaM_j + (m_k + m_j) * freqDEL +  wg_b + 2 * I * combGAMMA;
+                    const cmplx term_E = omega - (omegaM_k + omegaM_j - omegaM_i) - (m_k + m_j - m_i) * freqDEL + 3 * I * combGAMMA;
+                    const cmplx term_E_star = - omega + (omegaM_k + omegaM_j - omegaM_i) + (m_k + m_j - m_i) * freqDEL + 3 * I * combGAMMA;
+                    result += c_i * c_j * c_k * (1./(term_A * term_D * term_E_star) + (1./(term_B * term_C * term_E)));
+                }
+
+            }
+        }
+
+        ofc_mol->polarizationINDEX[out_i] += M_PI*M_PI*I*sign*result/(omega + wg_c);
+
+    }
+
+}
+
+void pol3_blocks(ofc_molecule* ofc_mol, ofc_parameters* ofc_params, const cmplx wg_c, const cmplx wg_b, const cmplx wg_a, const int sign)
+{
     int I_, J_, K_;
     I_ = ofc_params->basisINDX[0];
     J_ = ofc_params->basisINDX[1];
@@ -46,7 +91,7 @@ void pol3(ofc_molecule* ofc_mol, ofc_parameters* ofc_params, const cmplx wg_c, c
 
     int m_k_0 = ceil((- omegaM_k - crealf(wg_a) - blockDEL*K_)/freqDEL);
     int m_j_0 = ceil((- omegaM_k - omegaM_j - crealf(wg_b) - blockDEL*(J_ + K_))/freqDEL) - m_k_0;
-    double D = 0.;
+//    double D = 0.;
 
     if (m_k_0 >= -combRNG && m_k_0 <= combRNG - 1 && m_j_0 >= -combRNG && m_j_0 <= combRNG - 1)
     {
@@ -118,14 +163,14 @@ void CalculatePol3Response(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
     pol3(ofc_mol, ofc_params,        wg_ml,        wg_nl,        wg_vl,  1);
 
     //========== TERMS CORRESPONDING TO Chi^(3)(w2, w1, w3) ==============//
-    pol3(ofc_mol, ofc_params, -conj(wg_vl), -conj(wg_ml), -conj(wg_nl), -1);
-    pol3(ofc_mol, ofc_params, -conj(wg_nv),        wg_vl, -conj(wg_mv),  1);
-    pol3(ofc_mol, ofc_params, -conj(wg_nv), -conj(wg_ml),        wg_vm,  1);
-    pol3(ofc_mol, ofc_params, -conj(wg_mn),        wg_vl,        wg_nl, -1);
-    pol3(ofc_mol, ofc_params,        wg_vn, -conj(wg_ml), -conj(wg_nl),  1);
-    pol3(ofc_mol, ofc_params,        wg_nm,        wg_vl, -conj(wg_mv), -1);
-    pol3(ofc_mol, ofc_params,        wg_nm, -conj(wg_ml),        wg_vm, -1);
-    pol3(ofc_mol, ofc_params,        wg_ml,        wg_vl,        wg_nl,  1);
+//    pol3(ofc_mol, ofc_params, -conj(wg_vl), -conj(wg_ml), -conj(wg_nl), -1);
+//    pol3(ofc_mol, ofc_params, -conj(wg_nv),        wg_vl, -conj(wg_mv),  1);
+//    pol3(ofc_mol, ofc_params, -conj(wg_nv), -conj(wg_ml),        wg_vm,  1);
+//    pol3(ofc_mol, ofc_params, -conj(wg_mn),        wg_vl,        wg_nl, -1);
+//    pol3(ofc_mol, ofc_params,        wg_vn, -conj(wg_ml), -conj(wg_nl),  1);
+//    pol3(ofc_mol, ofc_params,        wg_nm,        wg_vl, -conj(wg_mv), -1);
+//    pol3(ofc_mol, ofc_params,        wg_nm, -conj(wg_ml),        wg_vm, -1);
+//    pol3(ofc_mol, ofc_params,        wg_ml,        wg_vl,        wg_nl,  1);
 
 }
 
@@ -139,7 +184,7 @@ void Chi1(ofc_molecule* ofc_mol, ofc_parameters* ofc_params)
     n = 2;
     v = 3;
 
-    print_double_mat(ofc_mol->gammaMATRIX, 4, 4);
+//    print_double_mat(ofc_mol->gammaMATRIX, 4, 4);
 
     cmplx wg_ml = ofc_mol->energies[m] - ofc_mol->energies[l] + I * ofc_mol->gammaMATRIX[m * levelsNUM + l];
     cmplx wg_nl = ofc_mol->energies[n] - ofc_mol->energies[l] + I * ofc_mol->gammaMATRIX[n * levelsNUM + l];

@@ -1,0 +1,7 @@
+*.so
+*.pdf
+*.pickle
+DataFP/
+Plots/
+Pickle/
+__pycache__/

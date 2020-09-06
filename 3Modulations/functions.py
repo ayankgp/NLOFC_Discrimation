@@ -95,7 +95,6 @@ def nonuniform_frequency_range_3(params):
     resolution = np.linspace(-0.02 * params.freqDEL, 0.02 * params.freqDEL, params.resolutionNUM)
 
     frequency_123 = params.omegaM1 + params.omegaM2 - params.omegaM3 + pointsFREQpolarization + resolution
-    # frequency_21 = 2 * params.omegaM1 - params.omegaM2 + pointsFREQpolarization + resolution
 
     field1FREQ = params.omegaM1 + pointsFREQcomb + resolution
     field2FREQ = params.omegaM2 + pointsFREQcomb + resolution

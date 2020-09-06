@@ -63,6 +63,7 @@ class QRD:
         self.pol3basisMATRIX = np.empty((self.molNUM, self.basisNUM_FB))
         self.freq2basisMATRIX = np.zeros((self.basisNUM_FB, self.freqNUM))
         self.rangeFREQ = params.rangeFREQ
+        self.rangeFREQ[0] = 0.0
 
 
     def basis_transform(self):
@@ -89,10 +90,19 @@ class QRD:
 
         self.pol3basisMATRIX = self.pol3_EMPTY.dot(self.freq2basisMATRIX)
 
-        # fig, ax = plt.subplots(nrows=3, ncols=2)
-        # for i in range(3):
-        #     ax[i, 0].plot(self.pol3_EMPTY[i].real, color=colors[i])
-        #     ax[i, 1].plot(self.pol3_EMPTY[i].imag, color=colors[i])
+        fig, ax = plt.subplots(nrows=3, ncols=2, sharex=True, sharey=True, figsize=(11, 11))
+        for i in range(3):
+            ax[i, 0].plot(self.pol3_EMPTY[i].real)
+            ax[i, 1].plot(self.pol3_EMPTY[i].imag)
+
+            ax[i][0].set_ylabel("$Re[P^{(3)}(\omega)]$ \n Mol " + str(i + 1), fontsize='x-large')
+            ax[i][1].set_ylabel("$Im[P^{(3)}(\omega)]$ \n Mol " + str(i + 1), fontsize='x-large')
+
+            render_axis(ax[i][0], labelSIZE='xx-large')
+            render_axis(ax[i][1], labelSIZE='xx-large')
+
+        ax[2][0].set_xlabel("Frequency (in THz)", fontsize='x-large')
+        ax[2][1].set_xlabel("Frequency (in Thz)", fontsize='x-large')
         return
 
     def calculate_heterodyne(self):
@@ -122,23 +132,25 @@ class QRD:
         #     axes2[0].plot(heterodyne_real[molINDX], '-')
         #     axes2[1].plot(heterodyne_imag[molINDX], '-')
 
-        colors = ['r', 'b', 'k']
+        colors = ['k', 'k', 'k']
+        alphas = [0.3, 0.6, 0.9]
         shaped_het_real = heterodyne_real.dot(self.freq2basisMATRIX.T)
         shaped_het_imag = heterodyne_imag.dot(self.freq2basisMATRIX.T)
         fig, ax = plt.subplots(nrows=3, ncols=2, sharey=True, figsize=(11, 11))
         for i in range(molNUM):
-            ax[i][0].plot(self.frequency / self.freqDEL, shaped_het_real[i] / shaped_het_real.max(), colors[i])
-            ax[i][1].plot(self.frequency / self.freqDEL, shaped_het_imag[i] / shaped_het_imag.max(), colors[i])
+            ax[i][0].plot(self.frequency / (timeFACTOR * 2. * np.pi), shaped_het_real[i] / shaped_het_real.max(), colors[i], alpha=alphas[i])
+            ax[i][1].plot(self.frequency / (timeFACTOR * 2. * np.pi), shaped_het_imag[i] / shaped_het_imag.max(), colors[i], alpha=alphas[i])
             ax[i][0].set_ylabel("$Re[E_{het}(\omega)]$ -- Mol " + str(i + 1), fontsize='x-large')
             ax[i][1].set_ylabel("$Im[E_{het}(\omega)]$ -- Mol " + str(i + 1), fontsize='x-large')
             # ax[i][0].set_xlim(2125, 2155)
             # ax[i][1].set_xlim(2125, 2155)
 
-            render_axis(ax[i][0], rotation=30)
-            render_axis(ax[i][1], rotation=30)
-        for j in range(molNUM - 1):
-            ax[j][0].get_xaxis().set_ticks([])
-            ax[j][1].get_xaxis().set_ticks([])
+            render_axis(ax[i][0], labelSIZE='xx-large')
+            render_axis(ax[i][1], labelSIZE='xx-large')
+
+        # for j in range(molNUM - 1):
+            # ax[j][0].get_xaxis().set_ticks([])
+            # ax[j][1].get_xaxis().set_ticks([])
         ax[2][0].set_xlabel("Frequency (in THz)", fontsize='x-large')
         ax[2][1].set_xlabel("Frequency (in Thz)", fontsize='x-large')
 
@@ -150,9 +162,10 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     import time
 
-    with open('pol3.pickle', 'rb') as f:
-        data = pickle.load(f)
-
+    # with open('Pickle/pol3.pickle', 'rb') as f:
+    with open('Pickle/P3.pickle', 'rb') as f:
+            data = pickle.load(f)
+        
     molNUM = 3
     timeFACTOR = 2.418884e-5
     polarizationTOTALEMPTY = data['pol3empty']
@@ -166,7 +179,7 @@ if __name__ == '__main__':
     field2 = data['field2']
     field3 = data['field3']
 
-    with open('pol3_args.pickle', 'rb') as f_args:
+    with open('Pickle/pol3_args.pickle', 'rb') as f_args:
         data = pickle.load(f_args)
 
     combNUM = data['combNUM']

@@ -108,6 +108,7 @@ def plot_field_pol_params(system, SystemVars):
     omega1MOD = system.field1FREQ[:, np.newaxis]
     omega2MOD = system.field2FREQ[:, np.newaxis]
 
+    range1, range2 = SystemVars.rangeFREQ
     omegaCOMB = (SystemVars.freqDEL * np.arange(-1.6*SystemVars.combNUM, 2.4*SystemVars.combNUM))[np.newaxis, :]
     # gaussian = np.exp(-(np.linspace(-SystemVars.combNUM, SystemVars.combNUM, 2 * SystemVars.combNUM)
     #                     + SystemVars.envelopeCENTER) ** 2 / (2. * SystemVars.envelopeWIDTH ** 2))[np.newaxis, :]

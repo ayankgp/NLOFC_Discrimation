@@ -403,28 +403,26 @@ if __name__ == '__main__':
     )
 
 
-    # start = time.time()
+    start = time.time()
 
-    # system = Spectra(SystemVars, **SystemArgs)
-    # system.fit_spectra(SystemVars)
+    system = Spectra(SystemVars, **SystemArgs)
+    system.fit_spectra(SystemVars)
 
-    # print('TIME ELAPSED FOR SPECTRA CALCULATION:', time.time() - start, 'seconds')
+    print('TIME ELAPSED FOR SPECTRA CALCULATION:', time.time() - start, 'seconds')
 
-    # ---------------------------------------------------------------------------------------------------------------- #
-    #                                               PLOT ABSORPTION SPECTRA FIT                                        #
-    # ---------------------------------------------------------------------------------------------------------------- #
+    fig, ax = plt.subplots(nrows=molNUM, ncols=1, figsize=(6, 6), sharex=True)
+    for i in range(molNUM):
+        ax[i].plot(system.spectra_wavelengths[i], system.spectra_absREF[i], protein_plot_colors[i], linestyle='--', label="theoretical fit")
+        ax[i].plot(system.spectra_wavelengths[i], system.spectra_absTOTAL[i], protein_plot_colors[i], label=data_protein_files_list[i][7:-4]+" spectra")
+        ax[i].set_xlim(system.spectra_wavelengths[i].min(), system.spectra_wavelengths[i].max())
+        render_axis(ax[i], gridLINE='-')
+        ax[i].legend()
+        ax[i].set_ylabel('Normalised \n absorption', fontsize='x-large')
 
-    # fig, ax = plt.subplots(nrows=molNUM, ncols=1, figsize=(6, 6), sharex=True)
-    # for i in range(molNUM):
-    #     ax[i].plot(system.spectra_wavelengths[i], system.spectra_absREF[i], protein_plot_colors[i], linestyle='--', label="theoretical fit")
-    #     ax[i].plot(system.spectra_wavelengths[i], system.spectra_absTOTAL[i], protein_plot_colors[i], label=data_protein_files_list[i][7:-4]+" spectra")
-    #     ax[i].set_xlim(system.spectra_wavelengths[i].min(), system.spectra_wavelengths[i].max())
-    #     render_axis(ax[i], gridLINE='-')
-    #     ax[i].legend()
-    #     ax[i].set_ylabel('Normalised \n absorption', fontsize='x-large')
-    #
-    # plt.subplots_adjust(left=0.2, bottom=None, right=None, top=None, wspace=None, hspace=0.0)
-    # ax[molNUM-1].set_xlabel('Wavelength (in $nm$)', fontsize='x-large')
+    plt.subplots_adjust(left=0.2, bottom=None, right=None, top=None, wspace=None, hspace=0.0)
+    ax[molNUM-1].set_xlabel('Wavelength (in $nm$)', fontsize='x-large')
+
+    plt.show()
 
     start = time.time()
 

@@ -16,6 +16,7 @@ __affiliation__ = "Princeton University"
 from types import MethodType, FunctionType
 import numpy as np
 from FP_QRdiscrimination import ADict
+from functions import render_axis
 
 
 class QRD:
@@ -77,21 +78,21 @@ class QRD:
         arrayFB1 = (arrayBASIS_FB + arrayCOMB_FB1)
         arrayFB2 = (arrayBASIS_FB + arrayCOMB_FB2)
 
-        freq2basisMATRIX = self.combGAMMA / ((arrayFREQ_FB - self.omegaM2 * 2 + self.omegaM1 - arrayFB1) ** 2 + self.combGAMMA ** 2) \
+        self.freq2basisMATRIX = self.combGAMMA / ((arrayFREQ_FB - self.omegaM2 * 2 + self.omegaM1 - arrayFB1) ** 2 + self.combGAMMA ** 2) \
                              + self.combGAMMA / ((arrayFREQ_FB - self.omegaM1 * 2 + self.omegaM2 - arrayFB2) ** 2 + self.combGAMMA ** 2)
-        plt.plot(self.frequency / self.freqDEL, freq2basisMATRIX.sum(axis=2))
 
         colors = ['r', 'b', 'k']
 
+        self.freq2basisMATRIX = self.freq2basisMATRIX.sum(axis=2)
+        plt.plot(self.frequency / self.freqDEL, self.freq2basisMATRIX)
+        print(self.freq2basisMATRIX.shape)
         plt.figure()
-        freq2basisMATRIX = freq2basisMATRIX.sum(axis=2)
-        print(freq2basisMATRIX.shape)
-        plt.imshow(freq2basisMATRIX.T.dot(freq2basisMATRIX).real)
+        plt.imshow(self.freq2basisMATRIX.T.dot(self.freq2basisMATRIX).real)
         plt.colorbar()
 
         print(self.pol3_EMPTY.shape)
         plt.figure()
-        self.pol3basisMATRIX = self.pol3_EMPTY.dot(freq2basisMATRIX)
+        self.pol3basisMATRIX = self.pol3_EMPTY.dot(self.freq2basisMATRIX)
         for i in range(self.molNUM):
             plt.plot(self.pol3basisMATRIX[i].real, color=colors[i])
 
@@ -99,6 +100,10 @@ class QRD:
         for i in range(3):
             ax[i, 0].plot(self.pol3_EMPTY[i].real, color=colors[i])
             ax[i, 1].plot(self.pol3_EMPTY[i].imag, color=colors[i])
+            ax[i][0].set_ylabel("$Re[P^{(3)}(\omega)]$ -- Mol " + str(i+1), fontsize='xx-large')
+            ax[i][1].set_ylabel("$Im[P^{(3)}(\omega)]$ -- Mol " + str(i+1), fontsize='xx-large')
+        ax[2][0].set_xlabel("Frequency (in THz)")
+        ax[2][1].set_xlabel("Frequency (in Thz)")
         return
 
     def calculate_heterodyne(self):
@@ -118,15 +123,37 @@ class QRD:
 
             for j in range(self.molNUM):
                 ImatBASIS[molINDX, j] = np.vdot(heterodyne[molINDX], self.pol3basisMATRIX[j])
-                ImatFREQ[molINDX, j] = np.vdot(heterodyne[molINDX].dot(self.freq2basisMATRIX), self.pol3_EMPTY[j])
+                ImatFREQ[molINDX, j] = np.vdot(heterodyne[molINDX].dot(self.freq2basisMATRIX.T), self.pol3_EMPTY[j])
 
         print(ImatBASIS)
-        print(ImatFREQ)
+
+        for i in range(molNUM):
+            ImatFREQ[i] /= np.abs(ImatFREQ[i]).max()
+
+        print(np.abs(ImatFREQ))
+
 
         fig2, axes2 = plt.subplots(nrows=1, ncols=2, sharex=True)
         for molINDX in range(self.molNUM):
             axes2[0].plot(heterodyne[molINDX].real, '-')
             axes2[1].plot(heterodyne[molINDX].imag, '-')
+
+        print(self.freq2basisMATRIX.shape)
+        print(heterodyne.shape)
+
+        colors = ['r', 'b', 'k']
+
+        shaped_het = heterodyne.dot(self.freq2basisMATRIX.T)
+        fig, ax = plt.subplots(nrows=3, ncols=2)
+        for i in range(molNUM):
+            ax[i][0].plot(self.frequency / self.freqDEL, shaped_het[i].real / shaped_het.real.max(), colors[i])
+            ax[i][1].plot(self.frequency / self.freqDEL, shaped_het[i].imag / shaped_het.imag.max(), colors[i])
+            ax[i][0].set_ylabel("$Re[E_{het}(\omega)]$ -- Mol " + str(i+1), fontsize='xx-large')
+            ax[i][1].set_ylabel("$Im[E_{het}(\omega)]$ -- Mol " + str(i+1), fontsize='xx-large')
+            render_axis(ax[i][0])
+            render_axis(ax[i][1])
+        ax[2][0].set_xlabel("Frequency (in THz)")
+        ax[2][1].set_xlabel("Frequency (in Thz)")
 
         return
 

@@ -263,6 +263,6 @@ double diffnorm_double_vec(const double *const A, const double *const B, const i
     {
         norm += fabs(A[i]-B[i]);
     }
-    printf("norm = %g, norm1 = %g \n", norm, norm_long_wavelength);
+//    printf("norm = %g, norm1 = %g \n", norm, norm_long_wavelength);
     return norm;
 }
