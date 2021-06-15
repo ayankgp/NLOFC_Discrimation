@@ -52,19 +52,25 @@ class QRD:
         self.field1FREQ = params.field1FREQ
         self.field2FREQ = params.field2FREQ
         self.field3FREQ = params.field3FREQ
-        self.field1 = params.field1 / params.field1.max()
-        self.field2 = params.field2 / params.field2.max()
-        self.field3 = params.field3 / params.field3.max()
+        # self.field1 = params.field1 / params.field1.max()
+        # self.field2 = params.field2 / params.field2.max()
+        # self.field3 = params.field3 / params.field3.max()
         self.round = params.round
         self.basisNUM_FB = params.basisNUM_FB
         self.basiswidth_FB = params.basiswidth_FB
         self.pol3_EMPTY.real /= np.abs(self.pol3_EMPTY.real).max()
         self.pol3_EMPTY.imag /= np.abs(self.pol3_EMPTY.imag).max()
+        self.ratios = np.asarray([0.2, 0.3, 0.5])
+        self.pol3_MIXTURE = self.pol3_EMPTY.T.dot(self.ratios)
         self.pol3basisMATRIX = np.empty((self.molNUM, self.basisNUM_FB))
         self.freq2basisMATRIX = np.zeros((self.basisNUM_FB, self.freqNUM))
         self.rangeFREQ = params.rangeFREQ
-        self.rangeFREQ[0] = 0.0
+        # self.rangeFREQ[0] = 0.0
 
+    def add_noise(self):
+        for i in range(self.molNUM):
+            for j in range(len(self.frequency)):
+                self.pol3_EMPTY[i, j] *= np.random.normal(1., 0.01)
 
     def basis_transform(self):
         # ------------------------------------------------------------------------------------------------------------ #
@@ -75,7 +81,6 @@ class QRD:
         arrayBASIS_FB = np.linspace(self.rangeFREQ[0] * self.combNUM, self.rangeFREQ[1] * self.combNUM,
                                     self.basisNUM_FB, endpoint=False)[np.newaxis, :, np.newaxis] * self.freqDEL
         BASIS_bw = int((arrayBASIS_FB[0, 1, 0] - arrayBASIS_FB[0, 0, 0]) / self.freqDEL + 0.5)
-        print(BASIS_bw)
         arrayCOMB_FB = np.linspace(0., BASIS_bw, self.basiswidth_FB, endpoint=False) * self.freqDEL
 
         arrayFB = (arrayBASIS_FB + arrayCOMB_FB[np.newaxis,  np.newaxis, :])
@@ -85,27 +90,84 @@ class QRD:
         self.freq2basisMATRIX = self.combGAMMA / ((arrayFREQ_FB - self.omegaM1 - self.omegaM2 + self.omegaM3 - arrayFB) ** 2 + self.combGAMMA ** 2)
 
         self.freq2basisMATRIX = self.freq2basisMATRIX.sum(axis=2)
-        plt.figure()
-        plt.plot(self.freq2basisMATRIX)
+        # plt.figure()
+        # plt.plot(self.freq2basisMATRIX)
+
+        self.add_noise()
 
         self.pol3basisMATRIX = self.pol3_EMPTY.dot(self.freq2basisMATRIX)
+        self.pol3MIXTUREbasisMATRIX = self.pol3_MIXTURE.dot(self.freq2basisMATRIX)
 
         fig, ax = plt.subplots(nrows=3, ncols=2, sharex=True, sharey=True, figsize=(11, 11))
         for i in range(3):
-            ax[i, 0].plot(self.pol3_EMPTY[i].real)
-            ax[i, 1].plot(self.pol3_EMPTY[i].imag)
+            ax[i, 0].plot(self.frequency / (timeFACTOR * 2. * np.pi), self.pol3_EMPTY[i].real)
+            ax[i, 1].plot(self.frequency / (timeFACTOR * 2. * np.pi), self.pol3_EMPTY[i].imag)
 
-            ax[i][0].set_ylabel("$Re[P^{(3)}(\omega)]$ \n Mol " + str(i + 1), fontsize='x-large')
-            ax[i][1].set_ylabel("$Im[P^{(3)}(\omega)]$ \n Mol " + str(i + 1), fontsize='x-large')
+            ax[i][0].set_ylabel("$Re[P^{(3)}(\omega)]$ \n Mol " + str(i + 1), fontsize='x-large', fontweight="bold")
+            ax[i][1].set_ylabel("$Im[P^{(3)}(\omega)]$ \n Mol " + str(i + 1), fontsize='x-large', fontweight="bold")
 
             render_axis(ax[i][0], labelSIZE='xx-large')
             render_axis(ax[i][1], labelSIZE='xx-large')
 
-        ax[2][0].set_xlabel("Frequency (in THz)", fontsize='x-large')
-        ax[2][1].set_xlabel("Frequency (in Thz)", fontsize='x-large')
+        ax[2][0].set_xlabel("Frequency (in THz)", fontsize='x-large', fontweight="bold")
+        ax[2][1].set_xlabel("Frequency (in Thz)", fontsize='x-large', fontweight="bold")
+
         return
 
     def calculate_heterodyne(self):
+        np.set_printoptions(precision=3, suppress=True)
+        Q_mat = np.empty((self.molNUM, self.freqNUM, self.freqNUM))
+        heterodyne_real = np.empty((self.molNUM, self.freqNUM))
+        heterodyne_imag = np.empty((self.molNUM, self.freqNUM))
+        R_mat = np.empty((self.molNUM, self.freqNUM, self.molNUM - 1))
+        ImatBASIS = np.empty((self.molNUM, self.molNUM), dtype=np.complex)
+        ImatFREQ = np.empty((self.molNUM, self.molNUM), dtype=np.complex)
+
+        basisAXIS = np.arange(self.freqNUM)
+        # envelopeBASIS = (np.exp(-(basisAXIS - 0.5 * self.freqNUM)**2 / (2 * (self.basisNUM_FB * 100) ** 2)))
+        envelopeBASIS = np.ones_like(basisAXIS) * (-1)
+
+        for molINDX in range(self.molNUM):
+            Q_mat[molINDX], R_mat[molINDX] = np.linalg.qr(np.delete(self.pol3_EMPTY.real.T, molINDX, 1), mode='complete')
+            heterodyne_real[molINDX] = sum(q * np.vdot(q, envelopeBASIS) for q in Q_mat[molINDX, :, self.molNUM - 1:].T)
+            Q_mat[molINDX], R_mat[molINDX] = np.linalg.qr(np.delete(self.pol3_EMPTY.imag.T, molINDX, 1), mode='complete')
+            heterodyne_imag[molINDX] = sum(q * np.vdot(q, envelopeBASIS) for q in Q_mat[molINDX, :, self.molNUM - 1:].T)
+
+        D_mat = heterodyne_real.dot(self.pol3_EMPTY.real.T)
+        np.set_printoptions(suppress=False)
+        max_pol3 = np.asarray([D_mat[i][i] for i in range(self.molNUM)])
+        print((D_mat.T/max_pol3).T)
+        new_ratios = heterodyne_real.dot(self.pol3_EMPTY.real.T)
+        print(new_ratios/max_pol3)
+
+        colors = ['k', 'k', 'k']
+        alphas = [0.3, 0.6, 0.9]
+
+        # fig, ax = plt.subplots(nrows=3, ncols=2, sharex=True, sharey=True, figsize=(11, 11))
+        # for i in range(molNUM):
+        #     ax[i][0].plot(self.frequency / (timeFACTOR * 2. * np.pi), heterodyne_real[i] / heterodyne_real.max(), colors[i], alpha=alphas[i])
+        #     ax[i][1].plot(self.frequency / (timeFACTOR * 2. * np.pi), heterodyne_imag[i] / heterodyne_imag.max(), colors[i], alpha=alphas[i])
+        #
+        #     ax[i][0].set_ylabel("$Re[E_{het}(\omega)]$ \n Mol " + str(i + 1), fontsize='x-large', fontweight="bold")
+        #     ax[i][1].set_ylabel("$Im[E_{het}(\omega)]$ \n Mol " + str(i + 1), fontsize='x-large', fontweight="bold")
+        #
+        #     render_axis(ax[i][0], labelSIZE='xx-large')
+        #     render_axis(ax[i][1], labelSIZE='xx-large')
+        #
+        # ax[2][0].set_xlabel("Frequency (in THz)", fontsize='x-large', fontweight="bold")
+        # ax[2][1].set_xlabel("Frequency (in Thz)", fontsize='x-large', fontweight="bold")
+
+        # with open('Pickle/S3_plot.pickle', 'wb') as f:
+        #     pickle.dump({
+        #         'freq':self.frequency / (timeFACTOR * 2. * np.pi),
+        #         'het_real':heterodyne_real,
+        #         'het_imag':heterodyne_imag,
+        #         'pol3':self.pol3_EMPTY
+        #     }, f)
+
+        return
+
+    def calculate_heterodyne_basis(self):
         np.set_printoptions(precision=3, suppress=True)
         Q_mat = np.empty((self.molNUM, self.basisNUM_FB, self.basisNUM_FB))
         heterodyne_real = np.empty((self.molNUM, self.basisNUM_FB))
@@ -115,7 +177,7 @@ class QRD:
         ImatFREQ = np.empty((self.molNUM, self.molNUM), dtype=np.complex)
 
         basisAXIS = np.arange(self.basisNUM_FB)
-        envelopeBASIS = (np.exp(-(basisAXIS - 0.5 * self.basisNUM_FB)**2 / (2 * (self.basisNUM_FB * 0.2) ** 2)))
+        envelopeBASIS = (np.exp(-(basisAXIS - 0.5 * self.basisNUM_FB)**2 / (2 * (self.basisNUM_FB * 0.3) ** 2)))
 
         for molINDX in range(self.molNUM):
             Q_mat[molINDX], R_mat[molINDX] = np.linalg.qr(np.delete(self.pol3basisMATRIX.real.T, molINDX, 1), mode='complete')
@@ -126,6 +188,13 @@ class QRD:
             #     ImatBASIS[molINDX, j] = np.vdot(heterodyne[molINDX], self.pol3basisMATRIX[j])
             #     ImatFREQ[molINDX, j] = np.vdot(heterodyne[molINDX].dot(self.freq2basisMATRIX.T), self.pol3_EMPTY[j])
 
+        self.heterodyne_basis = heterodyne_real + 1j * heterodyne_imag
+        D_mat = heterodyne_real.dot(self.pol3basisMATRIX.real.T)
+        np.set_printoptions(suppress=False)
+        max_pol3 = np.asarray([D_mat[i][i] for i in range(self.molNUM)])
+        print((D_mat.T/max_pol3).T)
+        new_ratios = heterodyne_real.dot(self.pol3MIXTUREbasisMATRIX.real.T)
+        print(new_ratios/max_pol3)
 
         # fig2, axes2 = plt.subplots(nrows=2, ncols=1, sharex=True)
         # for molINDX in range(self.molNUM):
@@ -136,23 +205,28 @@ class QRD:
         alphas = [0.3, 0.6, 0.9]
         shaped_het_real = heterodyne_real.dot(self.freq2basisMATRIX.T)
         shaped_het_imag = heterodyne_imag.dot(self.freq2basisMATRIX.T)
-        fig, ax = plt.subplots(nrows=3, ncols=2, sharey=True, figsize=(11, 11))
-        for i in range(molNUM):
-            ax[i][0].plot(self.frequency / (timeFACTOR * 2. * np.pi), shaped_het_real[i] / shaped_het_real.max(), colors[i], alpha=alphas[i])
-            ax[i][1].plot(self.frequency / (timeFACTOR * 2. * np.pi), shaped_het_imag[i] / shaped_het_imag.max(), colors[i], alpha=alphas[i])
-            ax[i][0].set_ylabel("$Re[E_{het}(\omega)]$ -- Mol " + str(i + 1), fontsize='x-large')
-            ax[i][1].set_ylabel("$Im[E_{het}(\omega)]$ -- Mol " + str(i + 1), fontsize='x-large')
-            # ax[i][0].set_xlim(2125, 2155)
-            # ax[i][1].set_xlim(2125, 2155)
 
-            render_axis(ax[i][0], labelSIZE='xx-large')
-            render_axis(ax[i][1], labelSIZE='xx-large')
+        # fig, ax = plt.subplots(nrows=3, ncols=2, sharex=True, sharey=True, figsize=(11, 11))
+        # for i in range(molNUM):
+        #     ax[i][0].plot(self.frequency / (timeFACTOR * 2. * np.pi), shaped_het_real[i] / shaped_het_real.max(), colors[i], alpha=alphas[i])
+        #     ax[i][1].plot(self.frequency / (timeFACTOR * 2. * np.pi), shaped_het_imag[i] / shaped_het_imag.max(), colors[i], alpha=alphas[i])
+        #
+        #     ax[i][0].set_ylabel("$Re[E_{het}(\omega)]$ \n Mol " + str(i + 1), fontsize='x-large', fontweight="bold")
+        #     ax[i][1].set_ylabel("$Im[E_{het}(\omega)]$ \n Mol " + str(i + 1), fontsize='x-large', fontweight="bold")
+        #
+        #     render_axis(ax[i][0], labelSIZE='xx-large')
+        #     render_axis(ax[i][1], labelSIZE='xx-large')
+        #
+        # ax[2][0].set_xlabel("Frequency (in THz)", fontsize='x-large', fontweight="bold")
+        # ax[2][1].set_xlabel("Frequency (in Thz)", fontsize='x-large', fontweight="bold")
 
-        # for j in range(molNUM - 1):
-            # ax[j][0].get_xaxis().set_ticks([])
-            # ax[j][1].get_xaxis().set_ticks([])
-        ax[2][0].set_xlabel("Frequency (in THz)", fontsize='x-large')
-        ax[2][1].set_xlabel("Frequency (in Thz)", fontsize='x-large')
+        with open('Pickle/S3_plot.pickle', 'wb') as f:
+            pickle.dump({
+                'freq':self.frequency / (timeFACTOR * 2. * np.pi),
+                'het_real':shaped_het_real,
+                'het_imag':shaped_het_imag,
+                'pol3':self.pol3_EMPTY
+            }, f)
 
         return
 
@@ -163,7 +237,7 @@ if __name__ == '__main__':
     import time
 
     # with open('Pickle/pol3.pickle', 'rb') as f:
-    with open('Pickle/P3.pickle', 'rb') as f:
+    with open('Pickle/S3.pickle', 'rb') as f:
             data = pickle.load(f)
         
     molNUM = 3
@@ -175,9 +249,9 @@ if __name__ == '__main__':
     field3FREQ = data['field3FREQ']
     frequency = data['frequency']
     freqNUM = frequency.size
-    field1 = data['field1']
-    field2 = data['field2']
-    field3 = data['field3']
+    # field1 = data['field1']
+    # field2 = data['field2']
+    # field3 = data['field3']
 
     with open('Pickle/pol3_args.pickle', 'rb') as f_args:
         data = pickle.load(f_args)
@@ -194,7 +268,7 @@ if __name__ == '__main__':
     envelopeCENTER = data['envelopeCENTER']
     chiNUM = data['chiNUM']
     rangeFREQ = data['rangeFREQ']
-    basisNUM_FB = 25
+    basisNUM_FB = 20
 
     SystemVars = ADict(
         molNUM=molNUM,
@@ -211,9 +285,9 @@ if __name__ == '__main__':
         field1FREQ=field1FREQ,
         field2FREQ=field2FREQ,
         field3FREQ=field3FREQ,
-        field1=field1,
-        field2=field2,
-        field3=field3,
+        # field1=field1,
+        # field2=field2,
+        # field3=field3,
         round=1,
         basisNUM_FB=basisNUM_FB,
         basiswidth_FB=int(combNUM/basisNUM_FB),
@@ -225,10 +299,29 @@ if __name__ == '__main__':
         pol3_FIELD=polarizationTOTALFIELD
     )
 
-    start = time.time()
-    system = QRD(SystemVars, **SystemArgs)
-    system.basis_transform()
-    system.calculate_heterodyne()
+    pol3_total = np.zeros((molNUM, basisNUM_FB), dtype=np.complex)
+    het_total = np.zeros((molNUM, basisNUM_FB), dtype=np.complex)
+
+    N_iter = 5
+    for i in range(N_iter):
+        start = time.time()
+        system = QRD(SystemVars, **SystemArgs)
+        system.basis_transform()
+        system.calculate_heterodyne_basis()
+        pol3_total += system.pol3basisMATRIX
+        het_total = system.heterodyne_basis
+        del system
+
+    pol3_total /= N_iter
+    het_total /= N_iter
+
+    D_mat = het_total.real.dot(pol3_total.real.T)
+    np.set_printoptions(suppress=False)
+    max_pol3 = np.asarray([D_mat[i][i] for i in range(molNUM)])
+    print((D_mat.T / max_pol3).T)
+
+    print()
+    # system.calculate_heterodyne()
     print("Time elapsed: ", time.time() - start)
 
     plt.show()

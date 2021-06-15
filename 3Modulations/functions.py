@@ -38,7 +38,7 @@ def get_experimental_spectra(molecule_file, wavelengthMIN, wavelengthMAX, wavele
 # ==================================================================================================================== #
 
 
-def render_axis(axis, labelSIZE='xx-large', labelCOLOR='k', gridCOLOR='r', gridLINE='--', rotation=0):
+def render_axis(axis, labelSIZE='xx-large', labelCOLOR='k', gridCOLOR='k', gridLINE='--', rotation=0):
     """
     Style plots for better representation
     :param rotation: angle of rotation for tick-labels
@@ -53,12 +53,12 @@ def render_axis(axis, labelSIZE='xx-large', labelCOLOR='k', gridCOLOR='r', gridL
     Style plots for better representation
     :param axis: axes class of plot
     """
-    plt.rc('font', weight='bold')
+    # plt.rc('font', weight='bold')
     axis.tick_params(bottom=True, top=True, left=True, right=True)
     axis.get_xaxis().set_tick_params(which='both', direction='in', width=1.25, labelrotation=0, labelsize=labelSIZE)
     axis.get_yaxis().set_tick_params(
         which='both', direction='in', width=1.25, labelcolor=labelCOLOR, labelsize=labelSIZE)
-    axis.grid(color=gridCOLOR, linestyle=gridLINE, linewidth=0.5, alpha=0.5, b=None, which='both', axis='both')
+    axis.grid(color=gridCOLOR, linestyle=gridLINE, linewidth=0.5, alpha=0.25, b=None, which='both', axis='both')
 
     for label in axis.get_xmajorticklabels():
         label.set_rotation(rotation)
@@ -90,8 +90,8 @@ def nonuniform_frequency_range_3(params):
     range1 = params.rangeFREQ[0]
     range2 = params.rangeFREQ[1]
 
-    pointsFREQpolarization = np.linspace(range1 * params.combNUM * params.freqDEL, range2 * params.combNUM * params.freqDEL, 2 * params.combNUM, endpoint=False)[:, np.newaxis]
-    pointsFREQcomb = np.linspace(range1 * params.combNUM * params.freqDEL, range2 * params.combNUM * params.freqDEL, 2 * params.combNUM, endpoint=False)[:, np.newaxis]
+    pointsFREQpolarization = np.linspace(range1 * params.combNUM * params.freqDEL, range2 * params.combNUM * params.freqDEL, params.combNUM, endpoint=False)[:, np.newaxis]
+    pointsFREQcomb = np.linspace(range1 * params.combNUM * params.freqDEL, range2 * params.combNUM * params.freqDEL, params.combNUM, endpoint=False)[:, np.newaxis]
     resolution = np.linspace(-0.02 * params.freqDEL, 0.02 * params.freqDEL, params.resolutionNUM)
 
     frequency_123 = params.omegaM1 + params.omegaM2 - params.omegaM3 + pointsFREQpolarization + resolution
